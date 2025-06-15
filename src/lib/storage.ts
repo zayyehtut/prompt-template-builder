@@ -1,7 +1,8 @@
 import { Template, ManagerContext } from '../types/template';
+import { Theme } from '@/hooks/useTheme';
 
 interface UserSettings {
-  theme: 'light' | 'dark' | 'system';
+  theme: Theme | 'system';
   defaultCategory: string;
   enableShortcuts: boolean;
   autoClose: boolean;
@@ -245,22 +246,21 @@ export class ExtensionStorage {
   }
 
   // === Settings Management ===
-  async getTheme(): Promise<'light' | 'dark'> {
+  async getTheme(): Promise<Theme> {
     try {
       const { settings } = await chrome.storage.sync.get('settings');
+      // Fallback for old settings that might not have a theme
       return settings?.theme || 'dark';
     } catch (error) {
       console.error('Failed to get theme:', error);
-      return 'dark';
+      return 'dark'; // Default theme
     }
   }
 
-  async setTheme(theme: 'light' | 'dark'): Promise<void> {
+  async setTheme(theme: Theme): Promise<void> {
     try {
-      const { settings = {} } = await chrome.storage.sync.get('settings');
-      await chrome.storage.sync.set({
-        settings: { ...settings, theme }
-      });
+      const settings = await this.getSettings();
+      await this.saveSettings({ ...settings, theme });
     } catch (error) {
       console.error('Failed to set theme:', error);
     }

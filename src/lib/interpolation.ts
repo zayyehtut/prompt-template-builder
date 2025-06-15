@@ -24,7 +24,7 @@ export function interpolateTemplate(
     const parts = varDef.split(':');
     const namePart = parts[0].trim();
     const isOptional = namePart.endsWith('?');
-    let name = namePart.replace('?', '').trim().toUpperCase();
+    let name = namePart.replace('?', '').trim();
     
     // Handle object property access (e.g., ITEM.name)
     let value = variables[name];
@@ -397,7 +397,7 @@ export function validateVariables(
     const parts = varDef.split(':');
     const namePart = parts[0].trim();
     const isOptional = namePart.endsWith('?');
-    const name = namePart.replace('?', '').trim().toUpperCase();
+    const name = namePart.replace('?', '').trim();
     
     // Check if required variable is missing
     if (!isOptional && !(name in variables)) {

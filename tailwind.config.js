@@ -6,7 +6,18 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
   	extend: {
+      fontFamily: {
+        sans: ["var(--font-sans)", "sans-serif"],
+        mono: ["var(--font-mono)", "monospace"],
+      },
   		colors: {
   			primary: {
   				'50': '#eff6ff',
@@ -60,5 +71,8 @@ export default {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    require('@tailwindcss/typography')
+  ],
 }; 

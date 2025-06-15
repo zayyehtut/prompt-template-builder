@@ -2,14 +2,17 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Moon, Sun, Plus } from 'lucide-react';
+import { Plus, Palette, Save } from 'lucide-react';
+import { Theme } from '@/hooks/useTheme';
 
 interface NavigationProps {
-  theme: 'light' | 'dark';
+  theme: Theme;
   onThemeToggle: () => void;
   searchQuery: string;
   onSearch: (query: string) => void;
   onNewTemplate: () => void;
+  onSave: () => void;
+  isSaveDisabled: boolean;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -18,6 +21,8 @@ export const Navigation: React.FC<NavigationProps> = ({
   searchQuery,
   onSearch,
   onNewTemplate,
+  onSave,
+  isSaveDisabled,
 }) => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex items-center h-16 px-4 bg-background border-b">
@@ -41,11 +46,11 @@ export const Navigation: React.FC<NavigationProps> = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" onClick={onThemeToggle}>
-                {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                <Palette className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Switch to {theme === 'light' ? 'dark' : 'light'} theme</p>
+              <p>Cycle Theme (Current: {theme})</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -53,6 +58,11 @@ export const Navigation: React.FC<NavigationProps> = ({
         <Button onClick={onNewTemplate}>
           <Plus className="h-5 w-5 mr-2" />
           New Template
+        </Button>
+
+        <Button onClick={onSave} disabled={isSaveDisabled}>
+          <Save className="h-5 w-5 mr-2" />
+          Save
         </Button>
       </div>
     </header>

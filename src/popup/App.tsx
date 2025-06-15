@@ -1,186 +1,177 @@
 import { useState, useEffect } from 'react';
-import { TemplateList } from './components/TemplateList';
-import { QuickEditor } from './components/QuickEditor';
-import { VariableForm } from './components/VariableForm';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Template } from '@/types/template';
 import { storage } from '@/lib/storage';
 import { interpolateTemplate } from '@/lib/interpolation';
-import type { Template } from '@/types/storage';
+import { useTheme } from '@/hooks/useTheme';
+import { Settings, Plus, FileText, Copy, Loader2 } from 'lucide-react';
 import { nanoid } from 'nanoid';
-import { Header } from './components/Header';
 
-type AppMode = 'list' | 'edit' | 'execute';
-
-function App() {
-  const [mode, setMode] = useState<AppMode>('list');
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+const Popup: React.FC = () => {
+  const { theme } = useTheme();
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [activeTemplate, setActiveTemplate] = useState<Template | null>(null);
+  const [variableValues, setVariableValues] = useState<Record<string, any>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [isExecuting, setIsExecuting] = useState(false);
 
   useEffect(() => {
     loadTemplates();
   }, []);
 
   const loadTemplates = async () => {
-    try {
-      setLoading(true);
-      const allTemplates = await storage.getTemplates();
-      setTemplates(Object.values(allTemplates));
-    } catch (error) {
-      console.error('Failed to load templates:', error);
-    } finally {
-      setLoading(false);
-    }
+    setIsLoading(true);
+    const templatesData = await storage.getTemplates();
+    const sortedTemplates = Object.values(templatesData).sort(
+      (a, b) => b.usageCount - a.usageCount
+    );
+    setTemplates(sortedTemplates);
+    setIsLoading(false);
   };
+  
+  const handleExecute = async () => {
+    if (!activeTemplate) return;
 
-  const handleExecute = async (template: Template, variables: Record<string, unknown>) => {
+    setIsExecuting(true);
     try {
-      const output = interpolateTemplate(template.content, variables);
-      
-      // Copy to clipboard
+      const output = interpolateTemplate(activeTemplate.content, variableValues);
       await navigator.clipboard.writeText(output);
       
-      // Save to history
+      const updatedTemplate = { 
+        ...activeTemplate, 
+        usageCount: (activeTemplate.usageCount || 0) + 1,
+        updatedAt: Date.now(),
+      };
+      await storage.saveTemplate(updatedTemplate);
+      
       await storage.addToHistory({
         id: nanoid(),
-        templateId: template.id,
-        templateName: template.name,
-        variables,
+        templateId: activeTemplate.id,
+        templateName: activeTemplate.name,
+        variables: variableValues,
         output,
         executedAt: Date.now(),
-        context: await getCurrentContext(),
       });
-      
-      // Update usage count
-      const updatedTemplate = { ...template, usageCount: (template.usageCount || 0) + 1 };
-      await storage.saveTemplate(updatedTemplate);
-      
-      // Refresh templates
-      await loadTemplates();
-      
-      // Show success feedback
-      showNotification('Template copied to clipboard!');
-      
-      // Close popup if autoClose is enabled
-      const settings = await storage.getSettings();
-      if (settings?.autoClose) {
+
+      // Show feedback
+      setTimeout(() => {
+        setIsExecuting(false);
         window.close();
-      } else {
-        // Go back to list
-        setMode('list');
-      }
+      }, 500);
+
     } catch (error) {
       console.error('Failed to execute template:', error);
-      showNotification('Failed to execute template', 'error');
+      setIsExecuting(false);
     }
   };
 
-  const handleSaveTemplate = async (template: Template) => {
-    try {
-      await storage.saveTemplate(template);
-      await loadTemplates();
-      setMode('list');
-      showNotification(selectedTemplate ? 'Template updated!' : 'Template created!');
-    } catch (error) {
-      console.error('Failed to save template:', error);
-      showNotification('Failed to save template', 'error');
-    }
+  const handleVariableChange = (name: string, value: any) => {
+    setVariableValues(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleDeleteTemplate = async (template: Template) => {
-    try {
-      await storage.deleteTemplate(template.id);
-      await loadTemplates();
-      showNotification('Template deleted');
-    } catch (error) {
-      console.error('Failed to delete template:', error);
-      showNotification('Failed to delete template', 'error');
-    }
+  const selectTemplate = (template: Template) => {
+    setActiveTemplate(template);
+    setVariableValues(
+      template.variables.reduce((acc, v) => {
+        acc[v.name] = v.defaultValue ?? '';
+        return acc;
+      }, {} as Record<string, any>)
+    );
   };
 
-  const handleToggleFavorite = async (template: Template) => {
-    try {
-      const updatedTemplate = { ...template, favorite: !template.favorite };
-      await storage.saveTemplate(updatedTemplate);
-      await loadTemplates();
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error);
-      showNotification('Failed to update favorite', 'error');
-    }
-  };
-
-  const getCurrentContext = async () => {
-    try {
-      // Try to get context from session storage (set by background script)
-      const result = await chrome.storage.session.get('popupContext');
-      return result.popupContext || {};
-    } catch {
-      return {};
-    }
-  };
-
-  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
-    // Simple notification - could be enhanced with a toast component
-    console.log(`${type.toUpperCase()}: ${message}`);
-  };
-
-  if (loading) {
-    return (
-      <div className="w-[400px] h-[600px] flex items-center justify-center bg-white dark:bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading templates...</p>
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
+      );
+    }
+
+    if (activeTemplate) {
+      return (
+        <div className="p-4 space-y-4">
+          <h3 className="text-lg font-semibold">{activeTemplate.name}</h3>
+          {activeTemplate.variables.map(variable => (
+            <div key={variable.name} className="space-y-2">
+              <Label htmlFor={variable.name}>{variable.name}</Label>
+              <Input
+                id={variable.name}
+                value={variableValues[variable.name] || ''}
+                onChange={e => handleVariableChange(variable.name, e.target.value)}
+                placeholder={variable.placeholder || ''}
+              />
+            </div>
+          ))}
+          <Button onClick={handleExecute} disabled={isExecuting} className="w-full">
+            {isExecuting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2" />}
+            Copy to Clipboard
+          </Button>
+          <Button variant="link" onClick={() => setActiveTemplate(null)} className="w-full">
+            Back to templates
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-4 space-y-2">
+        {templates.length > 0 ? (
+          templates.map(template => (
+            <Card
+              key={template.id}
+              className="hover:bg-accent/50 cursor-pointer"
+              onClick={() => selectTemplate(template)}
+            >
+              <CardContent className="p-3">
+                <p className="font-semibold">{template.name}</p>
+                <p className="text-sm text-muted-foreground truncate">
+                  {template.description || 'No description'}
+                </p>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="text-center py-10">
+            <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
+            <h3 className="mt-2 text-lg font-semibold">No Templates</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Create your first template in the manager.
+            </p>
+          </div>
+        )}
       </div>
     );
-  }
+  };
 
   return (
-    <div className="w-[400px] h-[600px] bg-white dark:bg-gray-900 flex flex-col">
-      <Header 
-        onNewTemplate={() => {
-          setSelectedTemplate(null);
-          setMode('edit');
-        }}
-        onOpenManager={() => storage.openManager()}
-      />
-      <div className="flex-grow overflow-y-auto">
-        {mode === 'list' && (
-          <TemplateList
-            templates={templates}
-            searchQuery={searchQuery}
-            onSearch={setSearchQuery}
-            onSelect={(template) => {
-              setSelectedTemplate(template);
-              setMode('execute');
-            }}
-            onEdit={(template) => {
-              setSelectedTemplate(template);
-              setMode('edit');
-            }}
-            onDelete={handleDeleteTemplate}
-            onToggleFavorite={handleToggleFavorite}
-          />
-        )}
-        
-        {mode === 'edit' && (
-          <QuickEditor
-            template={selectedTemplate}
-            onSave={handleSaveTemplate}
-            onCancel={() => setMode('list')}
-          />
-        )}
-        
-        {mode === 'execute' && selectedTemplate && (
-          <VariableForm
-            template={selectedTemplate}
-            onSubmit={(variables) => handleExecute(selectedTemplate, variables)}
-            onBack={() => setMode('list')}
-          />
-        )}
-      </div>
+    <div className={`w-[400px] h-fit max-h-[600px] bg-background text-foreground flex flex-col ${theme}`}>
+      <header className="p-2 border-b flex items-center justify-between">
+        <h1 className="text-lg font-bold px-2">Prompts</h1>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={() => storage.openManager({ action: 'new-template' })} aria-label="New Template">
+            <Plus className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => storage.openManager()} aria-label="Settings">
+            <Settings className="h-5 w-5" />
+          </Button>
+        </div>
+      </header>
+      
+      <main className="flex-1 overflow-y-auto">
+        {renderContent()}
+      </main>
+
+      <footer className="p-2 border-t text-center">
+        <Button variant="link" size="sm" onClick={() => storage.openManager()}>
+          Go to Template Manager
+        </Button>
+      </footer>
     </div>
   );
-}
+};
 
-export default App; 
+export default Popup; 

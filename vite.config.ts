@@ -1,29 +1,31 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
+import path from 'path';
 import react from '@vitejs/plugin-react';
 import { crx } from '@crxjs/vite-plugin';
 import manifest from './manifest.json';
-import path from "path"
-import tailwindcss from 'tailwindcss';
 
+// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    crx({ manifest }),
-    // tailwindcss(),
-  ],
+  plugins: [react(), crx({ manifest })],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
     },
   },
   build: {
     rollupOptions: {
       input: {
-        popup: 'src/popup/index.html',
         manager: 'src/pages/manager.html',
+        popup: 'src/popup/index.html',
         content: 'src/content/index.ts',
         background: 'src/background/service-worker.ts',
       },
     },
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './tests/setup.ts',
   },
 }); 

@@ -53,13 +53,13 @@
 ### Core Stack
 - **Extension**: Manifest V3, TypeScript 5.0+
 - **Management Page**: React 18+ with Vite 5.0+
-- **Editor**: Monaco Editor (VS Code editor) for professional feel
+- **Editor**: Simple Rich Text Editor (e.g., Tiptap, Lexical) for content-focused editing
 - **Styling**: Tailwind CSS + Custom CSS Variables for themes
 - **State**: Zustand for extension, React Query for data management
-- **UI Components**: Headless UI + Custom components
+- **UI Components**: shadcn/ui + Custom components
 
 ### Page-Specific Features
-- **Rich Text Editor**: Monaco with custom prompt template language
+- **Rich Text Editor**: With Markdown-like shortcuts and support for custom variable blocks
 - **Theme System**: Clean light/dark themes with developer color schemes
 - **Layout Manager**: Resizable panels, customizable workspace
 - **Command Palette**: VS Code-style command palette (Cmd+K)
@@ -142,8 +142,8 @@ interface ManagementPageLayout {
   
   // Main Editor Area
   editor: {
-    type: 'monaco' | 'codemirror';
-    features: ['syntax-highlight', 'autocomplete', 'variable-detection'];
+    type: 'rich-text' | 'markdown';
+    features: ['inline-styling', 'variable-detection', 'block-based-editing'];
     toolbar: ['save', 'preview', 'export', 'settings'];
     splitView: boolean;
   };
@@ -156,47 +156,6 @@ interface ManagementPageLayout {
     usageStats: boolean;
   };
 }
-```
-
-### Editor Features
-
-```typescript
-// Monaco Editor Configuration
-const editorConfig = {
-  language: 'prompt-template', // Custom language
-  theme: 'prompt-dark' | 'prompt-light',
-  features: {
-    // Variable highlighting
-    variableHighlighting: {
-      color: '#FFB800',
-      style: 'underline-dotted',
-      hover: 'show-type-info',
-    },
-    
-    // Auto-completion
-    autoComplete: {
-      variables: true,
-      functions: true,
-      snippets: true,
-      contextAware: true,
-    },
-    
-    // Live preview
-    livePreview: {
-      enabled: true,
-      position: 'right-panel',
-      updateDelay: 300,
-    },
-    
-    // Text selection to variable
-    selectionToVariable: {
-      hotkey: 'Cmd+Shift+V',
-      showModal: true,
-      suggestName: true,
-      suggestType: true,
-    },
-  },
-};
 ```
 
 ## 5. Theme System
@@ -440,7 +399,7 @@ class ContentScriptManager {
 ## 9. Implementation Phases
 
 ### Phase 1: Core Management Page (MVP+)
-- Monaco editor integration
+- Simple Rich Text Editor integration
 - Basic theme system
 - Template CRUD operations
 - Simple text-to-variable conversion

@@ -13,7 +13,7 @@ import { Settings2, StickyNote, Eye, X } from 'lucide-react';
 
 interface RightPanelProps {
   template: Template | null;
-  onTemplateUpdate: (template: Template) => void;
+  onTemplateUpdate: (updates: Partial<Template>) => void;
 }
 
 export const RightPanel: React.FC<RightPanelProps> = ({
@@ -37,7 +37,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   }
 
   const handleUpdate = (updates: Partial<Template>) => {
-    onTemplateUpdate({ ...template, ...updates, updatedAt: Date.now() });
+    onTemplateUpdate(updates);
   };
 
   const handleNewTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -143,10 +143,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           <TabsContent value="variables">
              <Card>
               <CardHeader>
-                <CardTitle>Variables ({template.variables.length})</CardTitle>
+                <CardTitle>Variables ({template.variables?.length || 0})</CardTitle>
               </CardHeader>
               <CardContent>
-                {template.variables.length === 0 ? (
+                {template.variables?.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
                     <p>No variables found.</p>
                     <p className="text-xs">Add {`{{VARIABLE_NAME}}`} in your template content.</p>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Navigation } from './components/Layout/Navigation';
 import { Sidebar } from './components/Layout/Sidebar';
@@ -15,7 +15,7 @@ interface AppState {
   searchQuery: string;
 }
 
-const TemplateManager: React.FC = () => {
+export const TemplateManager: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const [state, setState] = useState<Omit<AppState, 'theme'>>({
     templates: [],
@@ -23,6 +23,8 @@ const TemplateManager: React.FC = () => {
     isLoading: true,
     searchQuery: '',
   });
+  const [activeVariables, setActiveVariables] = useState<Template['variables']>([]);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     loadTemplates();
@@ -52,7 +54,8 @@ const TemplateManager: React.FC = () => {
       if (managerContext) {
         // Handle context (e.g., create new template with selected text)
         if (managerContext.action === 'new-template' && managerContext.selectedText) {
-          createTemplateFromText(managerContext.selectedText);
+          const newTemplate = createTemplateFromText(managerContext.selectedText);
+          handleTemplateSelect(newTemplate, true);
         }
         // Clear context after use
         chrome.storage.session.remove('managerContext');
@@ -62,7 +65,7 @@ const TemplateManager: React.FC = () => {
     }
   };
 
-  const createTemplateFromText = (text: string) => {
+  const createTemplateFromText = (text: string): Template => {
     const newTemplate: Template = {
       id: generateId(),
       name: 'New from Selection',
@@ -77,15 +80,17 @@ const TemplateManager: React.FC = () => {
       favorite: false,
     };
     
-    setState(prev => ({
-      ...prev,
-      selectedTemplate: newTemplate,
-      templates: [...prev.templates, newTemplate]
-    }));
+    return newTemplate;
   };
 
-  const handleTemplateSelect = (template: Template) => {
-    setState(prev => ({ ...prev, selectedTemplate: template }));
+  const handleTemplateSelect = (template: Template, isNew = false) => {
+    setState(prev => ({ 
+      ...prev, 
+      selectedTemplate: template,
+      templates: isNew ? [...prev.templates, template] : prev.templates
+    }));
+    setActiveVariables(template.variables);
+    setIsDirty(false);
   };
 
   const handleTemplateCreate = () => {
@@ -102,25 +107,63 @@ const TemplateManager: React.FC = () => {
       usageCount: 0,
       favorite: false,
     };
-    
-    setState(prev => ({
-      ...prev,
-      selectedTemplate: newTemplate,
-      templates: [...prev.templates, newTemplate]
-    }));
+    handleTemplateSelect(newTemplate, true);
+    setIsDirty(true);
   };
 
-  const handleTemplateSave = async (template: Template) => {
+  const handleTemplateSave = useCallback(async () => {
+    if (!state.selectedTemplate || !isDirty) return;
+    
     try {
-      await storage.saveTemplate(template);
+      const templateToSave: Template = {
+        ...state.selectedTemplate,
+        variables: activeVariables,
+        updatedAt: Date.now(),
+      };
+      
+      await storage.saveTemplate(templateToSave);
+      
       setState(prev => ({
         ...prev,
-        templates: prev.templates.map(t => 
-          t.id === template.id ? template : t
-        )
+        templates: prev.templates.map(t =>
+          t.id === templateToSave.id ? templateToSave : t
+        ),
+        selectedTemplate: templateToSave,
       }));
+      setIsDirty(false);
     } catch (error) {
       console.error('Failed to save template:', error);
+    }
+  }, [state.selectedTemplate, activeVariables, isDirty]);
+
+  const handleContentChange = (content: string) => {
+    if (state.selectedTemplate && state.selectedTemplate.content !== content) {
+      setState(prev => ({
+        ...prev,
+        selectedTemplate: { ...prev.selectedTemplate!, content }
+      }));
+      setIsDirty(true);
+    }
+  };
+
+  const handleNameChange = (name: string) => {
+    if (state.selectedTemplate && state.selectedTemplate.name !== name) {
+      setState(prev => ({
+        ...prev,
+        selectedTemplate: { ...prev.selectedTemplate!, name }
+      }));
+      setIsDirty(true);
+    }
+  };
+
+  const handleVariablesExtract = (variableNames: string[]) => {
+    const newVariables = variableNames.map(name => {
+      const existing = activeVariables.find(v => v.name === name);
+      return existing || { name, type: 'text' as const, required: true, description: '' };
+    });
+    // Only update if the variable list has actually changed
+    if (JSON.stringify(newVariables) !== JSON.stringify(activeVariables)) {
+      setActiveVariables(newVariables);
     }
   };
 
@@ -153,18 +196,40 @@ const TemplateManager: React.FC = () => {
     );
   });
 
+  const handleTemplateUpdate = (updates: Partial<Template>) => {
+    if (state.selectedTemplate) {
+      const updatedTemplate = { ...state.selectedTemplate, ...updates };
+      setState(prev => ({
+        ...prev,
+        selectedTemplate: updatedTemplate
+      }));
+      setIsDirty(true);
+    }
+  };
+
+  const updatedRightPanelTemplate = state.selectedTemplate ? {
+    ...state.selectedTemplate,
+    variables: activeVariables,
+  } : null;
+
+  if (!theme) {
+    return null; // or a loading spinner
+  }
+
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground font-sans">
+    <div className={`flex flex-col h-screen bg-background text-foreground ${theme}`}>
       <Navigation 
         theme={theme}
         onThemeToggle={toggleTheme}
         searchQuery={state.searchQuery}
         onSearch={handleSearch}
         onNewTemplate={handleTemplateCreate}
+        onSave={handleTemplateSave}
+        isSaveDisabled={!isDirty}
       />
       
-      <div className="flex flex-1 pt-16">
-        <Sidebar 
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar
           templates={filteredTemplates}
           selectedTemplate={state.selectedTemplate}
           onTemplateSelect={handleTemplateSelect}
@@ -173,17 +238,20 @@ const TemplateManager: React.FC = () => {
           isLoading={state.isLoading}
         />
         
-        <div className="flex-1 flex">
-          <EditorArea 
+        <main className="flex-1 flex flex-col">
+          <EditorArea
+            key={state.selectedTemplate?.id}
             template={state.selectedTemplate}
-            onTemplateUpdate={handleTemplateSave}
+            onContentChange={handleContentChange}
+            onNameChange={handleNameChange}
+            onVariablesExtract={handleVariablesExtract}
           />
-          
-          <RightPanel 
-            template={state.selectedTemplate}
-            onTemplateUpdate={handleTemplateSave}
-          />
-        </div>
+        </main>
+        
+        <RightPanel 
+          template={updatedRightPanelTemplate}
+          onTemplateUpdate={handleTemplateUpdate}
+        />
       </div>
     </div>
   );
@@ -191,11 +259,11 @@ const TemplateManager: React.FC = () => {
 
 // Utility function to generate IDs
 const generateId = (): string => {
-  return `T${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`;
+  return `template_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 };
 
 // Mount the app
-const container = document.getElementById('app');
+const container = document.getElementById('root');
 if (container) {
   const root = createRoot(container);
   root.render(

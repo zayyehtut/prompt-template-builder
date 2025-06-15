@@ -29,7 +29,7 @@
     },
 
     /* Chrome extension types */
-    "types": ["chrome", "vite/client", "@testing-library/jest-dom"]
+    "types": ["chrome", "vite/client", "@testing-library/jest-dom", "vitest/globals"]
   },
   "include": ["src", "tests", "manifest.json"],
   "references": [{ "path": "./tsconfig.node.json" }]
