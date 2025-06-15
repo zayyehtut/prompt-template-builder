@@ -1,4 +1,4 @@
-import type { Template, UserSettings, ExecutionRecord, VariablePreset } from '@/types/storage';
+import type { Template, UserSettings } from '@/types/storage';
 
 /**
  * Extension storage management with chrome.storage API
