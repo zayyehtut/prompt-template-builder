@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Template } from '../../../types/template';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings2, StickyNote, Eye, X } from 'lucide-react';
+import { interpolateAdvanced } from '@/lib/interpolation';
 
 interface RightPanelProps {
   template: Template | null;
@@ -20,6 +21,13 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   template,
   onTemplateUpdate,
 }) => {
+  const [previewVariables, setPreviewVariables] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    // Reset test variables when the template changes
+    setPreviewVariables({});
+  }, [template]);
+
   if (!template) {
     return (
       <aside className="w-96 p-4 border-l bg-background hidden xl:flex flex-col">
@@ -50,6 +58,12 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       e.currentTarget.value = '';
     }
   };
+
+  const handlePreviewVariableChange = (name: string, value: string) => {
+    setPreviewVariables(prev => ({ ...prev, [name]: value }));
+  };
+
+  const interpolatedContent = template ? interpolateAdvanced(template.content, previewVariables) : '';
 
   return (
     <aside className="w-96 p-4 border-l bg-background flex-col hidden xl:flex overflow-hidden">
@@ -173,9 +187,26 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 <CardTitle>Live Preview</CardTitle>
               </CardHeader>
               <CardContent>
+                {template.variables?.length > 0 && (
+                  <div className="space-y-4 mb-6">
+                    <h4 className="font-semibold">Test Variables</h4>
+                    {template.variables.map(variable => (
+                      <div key={variable.name} className="space-y-2">
+                        <Label htmlFor={`preview-var-${variable.name}`}>{variable.name}</Label>
+                        <Input
+                          id={`preview-var-${variable.name}`}
+                          value={previewVariables[variable.name] || ''}
+                          onChange={(e) => handlePreviewVariableChange(variable.name, e.target.value)}
+                          placeholder={`Enter value for ${variable.name}...`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Separator className={template.variables?.length > 0 ? 'mb-4' : 'hidden'} />
                 <div 
                   className="prose dark:prose-invert prose-sm max-w-none p-4 border rounded-md bg-secondary/30 min-h-[100px]"
-                  dangerouslySetInnerHTML={{ __html: template.content || "No content to preview." }}
+                  dangerouslySetInnerHTML={{ __html: interpolatedContent || "No content to preview." }}
                 />
               </CardContent>
             </Card>
