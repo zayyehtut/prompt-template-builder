@@ -163,6 +163,7 @@ export const TemplateManager: React.FC = () => {
     // Only update if the variable list has actually changed
     if (JSON.stringify(newVariables) !== JSON.stringify(activeVariables)) {
       setActiveVariables(newVariables);
+      setIsDirty(true);
     }
   };
 

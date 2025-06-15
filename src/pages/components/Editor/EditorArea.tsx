@@ -59,7 +59,7 @@ const EditorArea = ({
     const variables: string[] = [];
     editor.state.doc.descendants((node) => {
       if (node.type.name === 'variable') {
-        variables.push(node.attrs.id);
+        variables.push(node.attrs.name);
       }
     });
     
@@ -72,7 +72,7 @@ const EditorArea = ({
         // Pre-process the content to convert {{...}} into the format our VariableNode understands.
         const processedContent = template.content.replace(
           /\{\{([a-zA-Z0-9_]+)\}\}/g,
-          '<span data-type="variable-node" data-id="$1">{{$1}}</span>'
+          '<span data-name="$1"></span>'
         );
         
         if (editor.getHTML() !== processedContent) {
@@ -83,7 +83,7 @@ const EditorArea = ({
         editor.commands.clearContent(false);
       }
     }
-  }, [template?.id, editor]); // Depend on template.id to re-trigger on template switch
+  }, [template, editor]); // Depend on template to re-trigger on template switch
 
   if (!template) {
     return (

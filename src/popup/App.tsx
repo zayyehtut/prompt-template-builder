@@ -25,6 +25,10 @@ const AppLogo = () => (
   </svg>
 );
 
+const prepareContent = (content: string) => {
+  return content.replace(/<span data-name="([a-zA-Z0-9_]+)">.*?<\/span>/g, '{{$1}}');
+};
+
 const Popup: React.FC = () => {
   const { theme } = useTheme();
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -48,7 +52,7 @@ const Popup: React.FC = () => {
     if (!activeTemplate || isCopied) return;
 
     try {
-      const outputText = new DOMParser().parseFromString(activeTemplate.content, "text/html").documentElement.textContent || "";
+      const outputText = prepareContent(activeTemplate.content);
       const output = interpolateTemplate(outputText, variableValues);
       await navigator.clipboard.writeText(output);
       setIsCopied(true);
@@ -113,7 +117,7 @@ const Popup: React.FC = () => {
     }
 
     if (activeTemplate) {
-      const previewText = new DOMParser().parseFromString(activeTemplate.content, "text/html").documentElement.textContent || "";
+      const previewText = prepareContent(activeTemplate.content);
       return (
         <div className="p-4 space-y-4 flex-1 flex flex-col">
           <div className="flex items-center gap-2">
