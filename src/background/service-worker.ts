@@ -1,6 +1,48 @@
 // Background service worker for the extension
 import { storage } from '@/lib/storage';
 
+// Message types
+interface BaseMessage {
+  action: string;
+}
+
+interface TextSelectedMessage extends BaseMessage {
+  action: 'textSelected';
+  selectedText: string;
+  context: { url: string; title: string; elementType?: string };
+}
+
+interface UseAsContextMessage extends BaseMessage {
+  action: 'useAsContext';
+  text: string;
+  context: { url: string; title: string };
+}
+
+interface CreateTemplateMessage extends BaseMessage {
+  action: 'createTemplate';
+  text: string;
+  context: { url: string; title: string };
+}
+
+interface ExecuteTemplateMessage extends BaseMessage {
+  action: 'executeTemplate';
+  templateId: string;
+  context: { url: string; title: string };
+}
+
+interface EditTemplateMessage extends BaseMessage {
+  action: 'editTemplate';
+  templateId: string;
+}
+
+type ExtensionMessage = 
+  | TextSelectedMessage 
+  | UseAsContextMessage 
+  | CreateTemplateMessage 
+  | ExecuteTemplateMessage 
+  | EditTemplateMessage 
+  | BaseMessage;
+
 // Install event handler
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Prompt Template Builder installed');
@@ -57,13 +99,180 @@ chrome.commands.onCommand.addListener(async (command) => {
 });
 
 // Message handler for communication between components
-chrome.runtime.onMessage.addListener((request) => {
-  if (request.action === 'updateContextMenus') {
-    updateContextMenus();
-  }
-  
-  return false; // Not keeping the message channel open
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  handleMessage(request, sender, sendResponse);
+  return true; // Keep message channel open for async responses
 });
+
+// Handle messages from content scripts and popup
+async function handleMessage(request: ExtensionMessage, sender: chrome.runtime.MessageSender, sendResponse: (response: { success?: boolean; error?: string }) => void) {
+  try {
+    switch (request.action) {
+      case 'updateContextMenus':
+        await updateContextMenus();
+        sendResponse({ success: true });
+        break;
+        
+      case 'textSelected':
+        if ('selectedText' in request && 'context' in request) {
+          await handleTextSelected(request.selectedText, request.context, sender.tab);
+        }
+        sendResponse({ success: true });
+        break;
+        
+      case 'useAsContext':
+        if ('text' in request && 'context' in request) {
+          await handleUseAsContext(request.text, request.context);
+        }
+        sendResponse({ success: true });
+        break;
+        
+      case 'createTemplate':
+        if ('text' in request && 'context' in request) {
+          await handleCreateTemplate(request.text, request.context);
+        }
+        sendResponse({ success: true });
+        break;
+        
+      case 'openPopup':
+        chrome.action.openPopup();
+        sendResponse({ success: true });
+        break;
+        
+      case 'openQuickAccess':
+        await handleQuickAccess();
+        sendResponse({ success: true });
+        break;
+        
+      case 'editTemplate':
+        if ('templateId' in request) {
+          await handleEditTemplate(request.templateId);
+        }
+        sendResponse({ success: true });
+        break;
+        
+      case 'executeTemplate':
+        if ('templateId' in request && 'context' in request) {
+          await handleExecuteTemplate(request.templateId, request.context, sender.tab);
+        }
+        sendResponse({ success: true });
+        break;
+        
+      default:
+        sendResponse({ error: 'Unknown action' });
+    }
+  } catch (error) {
+    console.error('Background message handler error:', error);
+    sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+}
+
+// Handle text selection from content script
+async function handleTextSelected(selectedText: string, context: { url: string; title: string; elementType?: string }, tab?: chrome.tabs.Tab) {
+  // Store context for potential use in popup
+  await chrome.storage.session.set({
+    lastSelection: {
+      text: selectedText,
+      context,
+      timestamp: Date.now(),
+      tabId: tab?.id,
+    }
+  });
+  
+  // Could trigger context menu updates or other actions here
+}
+
+// Handle "use as context" action
+async function handleUseAsContext(text: string, context: { url: string; title: string }) {
+  // Store selected text as context for template creation
+  await chrome.storage.session.set({
+    templateContext: {
+      selectedText: text,
+      context,
+      timestamp: Date.now(),
+    }
+  });
+  
+  // Open popup for template selection
+  chrome.action.openPopup();
+}
+
+// Handle "create template" action
+async function handleCreateTemplate(text: string, context: { url: string; title: string }) {
+  // Store selected text for template creation
+  await chrome.storage.session.set({
+    createTemplate: {
+      suggestedContent: text,
+      context,
+      timestamp: Date.now(),
+    }
+  });
+  
+  // Open popup in edit mode
+  chrome.action.openPopup();
+}
+
+// Handle quick access request
+async function handleQuickAccess() {
+  // Get frequently used templates
+  const templates = await storage.getTemplates();
+  const frequentTemplates = Object.values(templates)
+    .sort((a, b) => b.usageCount - a.usageCount)
+    .slice(0, 5);
+    
+  // Store for popup
+  await chrome.storage.session.set({
+    quickAccess: {
+      templates: frequentTemplates,
+      timestamp: Date.now(),
+    }
+  });
+  
+  chrome.action.openPopup();
+}
+
+// Handle template editing request
+async function handleEditTemplate(templateId: string) {
+  await chrome.storage.session.set({
+    editTemplate: {
+      templateId,
+      timestamp: Date.now(),
+    }
+  });
+  
+  chrome.action.openPopup();
+}
+
+// Handle template execution from context
+async function handleExecuteTemplate(templateId: string, context: { url: string; title: string }, tab?: chrome.tabs.Tab) {
+  const template = await storage.getTemplate(templateId);
+  if (!template) return;
+  
+  // If template has no variables, execute immediately
+  if (template.variables.length === 0) {
+    if (tab?.id) {
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'insertText',
+        text: template.content,
+      });
+    }
+    
+    // Track usage
+    template.usageCount++;
+    await storage.saveTemplate(template);
+  } else {
+    // Store template for variable input
+    await chrome.storage.session.set({
+      executeTemplate: {
+        template,
+        context,
+        timestamp: Date.now(),
+      }
+    });
+    
+    chrome.action.openPopup();
+  }
+}
 
 // Initialize extension with default data
 async function initializeExtension() {
