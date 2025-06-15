@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useReducer } from 'react';
 import { Navigation } from './components/Layout/Navigation';
 import { Sidebar } from './components/Layout/Sidebar';
 import EditorArea from './components/Editor/EditorArea';
@@ -6,24 +6,147 @@ import { RightPanel } from './components/Layout/RightPanel';
 import { Template } from '../types/template';
 import { storage } from '../lib/storage';
 import { useTheme } from '@/hooks/useTheme';
+import { generateId } from '@/lib/utils';
 
 interface AppState {
   templates: Template[];
   selectedTemplate: Template | null;
   isLoading: boolean;
   searchQuery: string;
+  isDirty: boolean;
 }
+
+type Action =
+  | { type: 'START_LOADING' }
+  | { type: 'SET_TEMPLATES'; payload: Template[] }
+  | { type: 'SELECT_TEMPLATE'; payload: { template: Template, isNew?: boolean } }
+  | { type: 'CREATE_NEW_TEMPLATE' }
+  | { type: 'UPDATE_SELECTED_TEMPLATE'; payload: Partial<Template> }
+  | { type: 'SET_SEARCH_QUERY'; payload: string }
+  | { type: 'DELETE_TEMPLATE'; payload: string }
+  | { type: 'SAVE_TEMPLATE_SUCCESS'; payload: Template }
+  | { type: 'EXTRACT_VARIABLES'; payload: string[] }
+  | { type: 'CREATE_FROM_CONTEXT'; payload: string };
+
+const initialState: AppState = {
+  templates: [],
+  selectedTemplate: null,
+  isLoading: true,
+  searchQuery: '',
+  isDirty: false,
+};
+
+const reducer = (state: AppState, action: Action): AppState => {
+  switch (action.type) {
+    case 'START_LOADING':
+      return { ...state, isLoading: true };
+    case 'SET_TEMPLATES':
+      return { ...state, templates: action.payload, isLoading: false };
+    case 'SELECT_TEMPLATE': {
+      const { template, isNew } = action.payload;
+      return {
+        ...state,
+        selectedTemplate: template,
+        templates: isNew ? [...state.templates, template] : state.templates,
+        isDirty: !!isNew,
+      };
+    }
+    case 'CREATE_NEW_TEMPLATE': {
+      const newTemplate: Template = {
+        id: generateId(),
+        name: 'Untitled Template',
+        content: '',
+        variables: [],
+        category: 'general',
+        description: '',
+        tags: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        usageCount: 0,
+        favorite: false,
+      };
+      return {
+        ...state,
+        selectedTemplate: newTemplate,
+        templates: [...state.templates, newTemplate],
+        isDirty: true,
+      };
+    }
+    case 'UPDATE_SELECTED_TEMPLATE':
+      if (!state.selectedTemplate) return state;
+      return {
+        ...state,
+        selectedTemplate: { ...state.selectedTemplate, ...action.payload },
+        isDirty: true,
+      };
+    case 'SET_SEARCH_QUERY':
+      return { ...state, searchQuery: action.payload };
+    case 'DELETE_TEMPLATE': {
+      const newTemplates = state.templates.filter(t => t.id !== action.payload);
+      return {
+        ...state,
+        templates: newTemplates,
+        selectedTemplate: state.selectedTemplate?.id === action.payload ? null : state.selectedTemplate,
+      };
+    }
+    case 'SAVE_TEMPLATE_SUCCESS': {
+      const updatedTemplate = action.payload;
+      const newTemplates = state.templates.map(t =>
+        t.id === updatedTemplate.id ? updatedTemplate : t
+      );
+      return {
+        ...state,
+        templates: newTemplates,
+        selectedTemplate: updatedTemplate,
+        isDirty: false,
+      };
+    }
+    case 'EXTRACT_VARIABLES': {
+      if (!state.selectedTemplate) return state;
+      const newVariables = action.payload.map(name => {
+        const existing = state.selectedTemplate!.variables.find(v => v.name === name);
+        return existing || { name, type: 'text' as const, required: true, description: '' };
+      });
+
+      if (JSON.stringify(newVariables) === JSON.stringify(state.selectedTemplate.variables)) {
+        return state;
+      }
+      
+      return {
+        ...state,
+        selectedTemplate: { ...state.selectedTemplate, variables: newVariables },
+        isDirty: true,
+      };
+    }
+    case 'CREATE_FROM_CONTEXT': {
+        const newTemplate: Template = {
+            id: generateId(),
+            name: 'New from Selection',
+            content: action.payload,
+            variables: [],
+            category: 'general',
+            description: '',
+            tags: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            usageCount: 0,
+            favorite: false,
+        };
+        return {
+            ...state,
+            selectedTemplate: newTemplate,
+            templates: [...state.templates, newTemplate],
+            isDirty: true,
+        };
+    }
+    default:
+      return state;
+  }
+};
 
 export const TemplateManager: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
-  const [state, setState] = useState<Omit<AppState, 'theme'>>({
-    templates: [],
-    selectedTemplate: null,
-    isLoading: true,
-    searchQuery: '',
-  });
-  const [activeVariables, setActiveVariables] = useState<Template['variables']>([]);
-  const [isDirty, setIsDirty] = useState(false);
+  const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
     loadTemplates();
@@ -31,32 +154,21 @@ export const TemplateManager: React.FC = () => {
   }, []);
 
   const loadTemplates = async () => {
+    dispatch({ type: 'START_LOADING' });
     try {
-      setState(prev => ({ ...prev, isLoading: true }));
       const templatesData = await storage.getTemplates();
-      const templates = Object.values(templatesData);
-      setState(prev => ({ 
-        ...prev, 
-        templates,
-        isLoading: false 
-      }));
+      dispatch({ type: 'SET_TEMPLATES', payload: Object.values(templatesData) });
     } catch (error) {
       console.error('Failed to load templates:', error);
-      setState(prev => ({ ...prev, isLoading: false }));
+      dispatch({ type: 'SET_TEMPLATES', payload: [] });
     }
   };
 
   const checkForContext = async () => {
     try {
-      // Check if we were opened with context (e.g., from popup)
       const { managerContext } = await chrome.storage.session.get('managerContext');
-      if (managerContext) {
-        // Handle context (e.g., create new template with selected text)
-        if (managerContext.action === 'new-template' && managerContext.selectedText) {
-          const newTemplate = createTemplateFromText(managerContext.selectedText);
-          handleTemplateSelect(newTemplate, true);
-        }
-        // Clear context after use
+      if (managerContext?.action === 'new-template' && managerContext.selectedText) {
+        dispatch({ type: 'CREATE_FROM_CONTEXT', payload: managerContext.selectedText });
         chrome.storage.session.remove('managerContext');
       }
     } catch (error) {
@@ -64,126 +176,55 @@ export const TemplateManager: React.FC = () => {
     }
   };
 
-  const createTemplateFromText = (text: string): Template => {
-    const newTemplate: Template = {
-      id: generateId(),
-      name: 'New from Selection',
-      content: text,
-      variables: [],
-      category: 'general',
-      description: '',
-      tags: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      usageCount: 0,
-      favorite: false,
-    };
-    
-    return newTemplate;
-  };
-
   const handleTemplateSelect = (template: Template, isNew = false) => {
-    setState(prev => ({ 
-      ...prev, 
-      selectedTemplate: template,
-      templates: isNew ? [...prev.templates, template] : prev.templates
-    }));
-    setActiveVariables(template.variables);
-    setIsDirty(false);
+    dispatch({ type: 'SELECT_TEMPLATE', payload: { template, isNew } });
   };
-
-  const handleTemplateCreate = () => {
-    const newTemplate: Template = {
-      id: generateId(),
-      name: 'Untitled Template',
-      content: '',
-      variables: [],
-      category: 'general',
-      description: '',
-      tags: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      usageCount: 0,
-      favorite: false,
-    };
-    handleTemplateSelect(newTemplate, true);
-    setIsDirty(true);
-  };
+  
+  const handleTemplateCreate = () => dispatch({ type: 'CREATE_NEW_TEMPLATE' });
 
   const handleTemplateSave = useCallback(async () => {
-    if (!state.selectedTemplate || !isDirty) return;
+    if (!state.selectedTemplate || !state.isDirty) return;
     
     try {
-      const templateToSave: Template = {
+      const templateToSave = {
         ...state.selectedTemplate,
-        variables: activeVariables,
         updatedAt: Date.now(),
       };
       
       await storage.saveTemplate(templateToSave);
-      
-      setState(prev => ({
-        ...prev,
-        templates: prev.templates.map(t =>
-          t.id === templateToSave.id ? templateToSave : t
-        ),
-        selectedTemplate: templateToSave,
-      }));
-      setIsDirty(false);
+      dispatch({ type: 'SAVE_TEMPLATE_SUCCESS', payload: templateToSave });
     } catch (error) {
       console.error('Failed to save template:', error);
     }
-  }, [state.selectedTemplate, activeVariables, isDirty]);
+  }, [state.selectedTemplate, state.isDirty]);
 
   const handleContentChange = (content: string) => {
-    if (state.selectedTemplate && state.selectedTemplate.content !== content) {
-      setState(prev => ({
-        ...prev,
-        selectedTemplate: { ...prev.selectedTemplate!, content }
-      }));
-      setIsDirty(true);
+    if (state.selectedTemplate?.content !== content) {
+      dispatch({ type: 'UPDATE_SELECTED_TEMPLATE', payload: { content }});
     }
   };
 
   const handleNameChange = (name: string) => {
-    if (state.selectedTemplate && state.selectedTemplate.name !== name) {
-      setState(prev => ({
-        ...prev,
-        selectedTemplate: { ...prev.selectedTemplate!, name }
-      }));
-      setIsDirty(true);
+    if (state.selectedTemplate?.name !== name) {
+        dispatch({ type: 'UPDATE_SELECTED_TEMPLATE', payload: { name }});
     }
   };
 
   const handleVariablesExtract = (variableNames: string[]) => {
-    const newVariables = variableNames.map(name => {
-      const existing = activeVariables.find(v => v.name === name);
-      return existing || { name, type: 'text' as const, required: true, description: '' };
-    });
-    // Only update if the variable list has actually changed
-    if (JSON.stringify(newVariables) !== JSON.stringify(activeVariables)) {
-      setActiveVariables(newVariables);
-      setIsDirty(true);
-    }
+    dispatch({ type: 'EXTRACT_VARIABLES', payload: variableNames });
   };
 
   const handleTemplateDelete = async (templateId: string) => {
     try {
       await storage.deleteTemplate(templateId);
-      setState(prev => ({
-        ...prev,
-        templates: prev.templates.filter(t => t.id !== templateId),
-        selectedTemplate: prev.selectedTemplate?.id === templateId 
-          ? null 
-          : prev.selectedTemplate
-      }));
+      dispatch({ type: 'DELETE_TEMPLATE', payload: templateId });
     } catch (error) {
       console.error('Failed to delete template:', error);
     }
   };
 
   const handleSearch = (query: string) => {
-    setState(prev => ({ ...prev, searchQuery: query }));
+    dispatch({ type: 'SET_SEARCH_QUERY', payload: query });
   };
 
   const filteredTemplates = state.templates.filter(template => {
@@ -197,23 +238,11 @@ export const TemplateManager: React.FC = () => {
   });
 
   const handleTemplateUpdate = (updates: Partial<Template>) => {
-    if (state.selectedTemplate) {
-      const updatedTemplate = { ...state.selectedTemplate, ...updates };
-      setState(prev => ({
-        ...prev,
-        selectedTemplate: updatedTemplate
-      }));
-      setIsDirty(true);
-    }
+    dispatch({ type: 'UPDATE_SELECTED_TEMPLATE', payload: updates });
   };
 
-  const updatedRightPanelTemplate = state.selectedTemplate ? {
-    ...state.selectedTemplate,
-    variables: activeVariables,
-  } : null;
-
   if (!theme) {
-    return null; // or a loading spinner
+    return null; 
   }
 
   return (
@@ -225,7 +254,7 @@ export const TemplateManager: React.FC = () => {
         onSearch={handleSearch}
         onNewTemplate={handleTemplateCreate}
         onSave={handleTemplateSave}
-        isSaveDisabled={!isDirty}
+        isSaveDisabled={!state.isDirty}
       />
       
       <div className="flex flex-1 overflow-hidden pt-16">
@@ -252,15 +281,10 @@ export const TemplateManager: React.FC = () => {
         </main>
         
         <RightPanel 
-          template={updatedRightPanelTemplate}
+          template={state.selectedTemplate}
           onTemplateUpdate={handleTemplateUpdate}
         />
       </div>
     </div>
   );
-};
-
-// Utility function to generate IDs
-const generateId = (): string => {
-  return `template_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }; 

@@ -250,8 +250,8 @@ function formatValue(value: unknown, typeHint?: string): string {
     return '[Object]'; // Default object formatting
   }
   
-  // Default for strings and other types
-  return value.toString();
+  // Default to string conversion
+  return String(value);
 }
 
 /**
@@ -439,4 +439,18 @@ export function interpolateTiptapContent(
       return `{{${variableName}}}`;
     }
   );
+}
+
+/**
+ * Converts Tiptap's HTML content with variable spans back to a plain text template.
+ * e.g., '<p>Hello <span data-name="user_name"></span></p>' -> 'Hello {{user_name}}'
+ */
+export function convertTiptapContentToText(htmlContent: string): string {
+  // First, convert variable spans to {{variable}} format
+  let textContent = htmlContent.replace(/<span data-name="([a-zA-Z0-9_]+)">.*?<\/span>/g, '{{$1}}');
+  
+  // Then, strip any remaining HTML tags to get plain text
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = textContent;
+  return tempDiv.textContent || tempDiv.innerText || '';
 } 

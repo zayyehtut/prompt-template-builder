@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Template } from '@/types/template';
 import { storage } from '@/lib/storage';
-import { interpolateTemplate } from '@/lib/interpolation';
+import { interpolateTemplate, convertTiptapContentToText } from '@/lib/interpolation';
 import { useTheme } from '@/hooks/useTheme';
 import { Settings, Plus, FileText, Loader2, ArrowLeft, Star, Folder } from 'lucide-react';
 import { nanoid } from 'nanoid';
@@ -24,10 +24,6 @@ const AppLogo = () => (
     <path d="M16 16H20V20H16V16Z" fill="currentColor"/>
   </svg>
 );
-
-const prepareContent = (content: string) => {
-  return content.replace(/<span data-name="([a-zA-Z0-9_]+)">.*?<\/span>/g, '{{$1}}');
-};
 
 const Popup: React.FC = () => {
   const { theme } = useTheme();
@@ -52,7 +48,7 @@ const Popup: React.FC = () => {
     if (!activeTemplate || isCopied) return;
 
     try {
-      const outputText = prepareContent(activeTemplate.content);
+      const outputText = convertTiptapContentToText(activeTemplate.content);
       const output = interpolateTemplate(outputText, variableValues);
       await navigator.clipboard.writeText(output);
       setIsCopied(true);
@@ -117,7 +113,7 @@ const Popup: React.FC = () => {
     }
 
     if (activeTemplate) {
-      const previewText = prepareContent(activeTemplate.content);
+      const previewText = convertTiptapContentToText(activeTemplate.content);
       return (
         <div className="p-4 space-y-4 flex-1 flex flex-col">
           <div className="flex items-center gap-2">
