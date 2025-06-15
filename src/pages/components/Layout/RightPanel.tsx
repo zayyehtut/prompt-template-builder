@@ -6,14 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings2, StickyNote, Eye, X, Code } from 'lucide-react';
-import { interpolateTiptapContent } from '@/lib/interpolation';
 import { useTemplateManager } from '@/contexts/TemplateManagerContext';
 import { useTemplateActions } from '@/hooks/useTemplateActions';
 import { EmptyState } from '@/components/common/EmptyState';
+import { ActiveTemplateView } from '@/components/common/ActiveTemplateView';
 
 export const RightPanel: React.FC = () => {
   const { state } = useTemplateManager();
@@ -57,8 +56,6 @@ export const RightPanel: React.FC = () => {
     setPreviewVariables(prev => ({ ...prev, [name]: value }));
   };
 
-  const interpolatedContent = template ? interpolateTiptapContent(template.content, previewVariables) : '';
-
   return (
     <aside className="w-96 p-4 border-l bg-background flex flex-col">
       <h2 className="text-lg font-bold tracking-wider uppercase text-foreground mb-4">
@@ -71,7 +68,7 @@ export const RightPanel: React.FC = () => {
           <TabsTrigger value="preview"><Eye className="w-4 h-4 mr-2"/>Preview</TabsTrigger>
         </TabsList>
 
-        <div className="flex-1 overflow-y-auto mt-4 -mr-4 pr-4 space-y-6">
+        <div className="flex-1 overflow-y-auto mt-4 pr-2 space-y-6">
           <TabsContent value="properties" className="space-y-6">
             <Card>
               <CardHeader>
@@ -171,33 +168,13 @@ export const RightPanel: React.FC = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="preview">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Live Preview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(template.variables || []).length > 0 && (
-                  <div className="space-y-4 mb-6">
-                    <h4 className="font-semibold text-muted-foreground">Test Values</h4>
-                    {template.variables.map(variable => (
-                      <div key={variable.name} className="space-y-2">
-                        <Label htmlFor={`preview-var-${variable.name}`}>{variable.name}</Label>
-                        <Input
-                          id={`preview-var-${variable.name}`}
-                          value={previewVariables[variable.name] || ''}
-                          onChange={(e) => handlePreviewVariableChange(variable.name, e.target.value)}
-                          placeholder={`Enter test value for ${variable.name}...`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <Separator className={(template.variables || []).length > 0 ? 'my-4' : 'hidden'} />
-                <div className="text-sm text-foreground/80">Result</div>
-                <div 
-                  className="prose dark:prose-invert prose-sm max-w-none p-4 mt-2 border rounded-md bg-secondary/30 min-h-[120px]"
-                  dangerouslySetInnerHTML={{ __html: interpolatedContent || "<span class='text-muted-foreground'>No content to preview.</span>" }}
+          <TabsContent value="preview" className="flex flex-col">
+             <Card className="flex-1">
+              <CardContent className="pt-6 h-full">
+                <ActiveTemplateView
+                  template={template}
+                  variableValues={previewVariables}
+                  onVariableChange={handlePreviewVariableChange}
                 />
               </CardContent>
             </Card>

@@ -139,6 +139,11 @@ async function handleMessage(request: ExtensionMessage, sender: chrome.runtime.M
         sendResponse({ success: true });
         break;
         
+      case 'openManager':
+        await storage.openManager(request);
+        sendResponse({ success: true });
+        break;
+        
       case 'openQuickAccess':
         await handleQuickAccess();
         sendResponse({ success: true });

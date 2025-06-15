@@ -43,7 +43,7 @@ const reducer = (state: AppState, action: Action): AppState => {
         ...state,
         selectedTemplate: template,
         templates: isNew ? [...state.templates, template] : state.templates,
-        isDirty: !!isNew,
+        isDirty: isNew ?? false,
       };
     }
     case 'CREATE_NEW_TEMPLATE': {

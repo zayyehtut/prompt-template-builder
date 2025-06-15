@@ -47,10 +47,10 @@ export const TemplateList: React.FC<TemplateListProps> = ({
   const renderTemplateItem = (template: Template) => (
     <div
       key={template.id}
-      className={`group flex items-center justify-between pl-3 pr-2 py-2 rounded-md cursor-pointer border-l-2 transition-all duration-150 ${
+      className={`group flex items-center justify-between pl-3 pr-2 py-2 rounded-md cursor-pointer border-l-4 transition-all duration-150 ${
         selectedTemplateId === template.id
-          ? 'bg-primary/20 border-primary text-primary-foreground font-semibold'
-          : 'border-transparent text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
+          ? 'border-primary bg-primary/10 text-primary'
+          : 'border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground'
       }`}
       onClick={() => onTemplateSelect(template)}
     >

@@ -1,15 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Template } from '@/types/template';
+import { Button } from '@/components/ui/button';
 import { storage } from '@/lib/storage';
 import { convertTiptapContentToText, interpolateTiptapContent } from '@/lib/interpolation';
 import { useTheme } from '@/hooks/useTheme';
-import { Settings, Plus, FileText, Loader2, ArrowLeft, Eye } from 'lucide-react';
+import { Settings, Plus, FileText, Loader2, ArrowLeft } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import '../index.css';
 import { TemplateList } from '@/components/common/TemplateList';
+import { ActiveTemplateView } from '@/components/common/ActiveTemplateView';
 
 const AppLogo = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-primary">
@@ -25,14 +24,13 @@ const AppLogo = () => (
   </svg>
 );
 
-const Popup: React.FC = () => {
-  const { theme } = useTheme(document);
+const App: React.FC = () => {
+  const { theme } = useTheme();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTemplate, setActiveTemplate] = useState<Template | null>(null);
   const [variableValues, setVariableValues] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     loadTemplates();
@@ -44,8 +42,15 @@ const Popup: React.FC = () => {
     setTemplates(Object.values(templatesData));
     setIsLoading(false);
   };
+
+  const handleTemplateSelect = (template: Template) => {
+    setActiveTemplate(template);
+    setVariableValues(
+      template.variables.reduce((acc, v) => ({ ...acc, [v.name]: v.defaultValue ?? '' }), {})
+    );
+  };
   
-  const handleExecute = async () => {
+  const handleExecute = useCallback(async () => {
     if (!activeTemplate || isCopied) return;
 
     try {
@@ -76,22 +81,14 @@ const Popup: React.FC = () => {
     } catch (error) {
       console.error('Failed to execute template:', error);
     }
-    setShowPreview(false);
-  };
+  }, [activeTemplate, variableValues, isCopied]);
 
   const handleVariableChange = (name: string, value: any) => {
     setVariableValues(prev => ({ ...prev, [name]: value }));
   };
 
-  const selectTemplate = (template: Template) => {
-    setActiveTemplate(template);
-    setVariableValues(
-      template.variables.reduce((acc, v) => {
-        acc[v.name] = v.defaultValue ?? '';
-        return acc;
-      }, {} as Record<string, any>)
-    );
-    setShowPreview(false);
+  const openManager = (args?: any) => {
+    chrome.runtime.sendMessage({ action: 'openManager', ...args });
   };
 
   const renderContent = () => {
@@ -104,8 +101,6 @@ const Popup: React.FC = () => {
     }
 
     if (activeTemplate) {
-      const interpolatedPreview = interpolateTiptapContent(activeTemplate.content, variableValues);
-
       return (
         <div className="p-4 space-y-4 flex-1 flex flex-col">
           <div className="flex items-center justify-between gap-2">
@@ -113,41 +108,19 @@ const Popup: React.FC = () => {
               <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => setActiveTemplate(null)}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <h3 className="text-base font-semibold truncate">{activeTemplate.name}</h3>
+              <h3 className="text-sm font-medium truncate">{activeTemplate.name}</h3>
             </div>
-            <Button variant={showPreview ? "secondary" : "ghost"} size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => setShowPreview(!showPreview)}>
-                <Eye className="h-5 w-5" />
-            </Button>
           </div>
           
-          <div className="space-y-3 flex-1 overflow-y-auto -mr-2 pr-2">
-            {showPreview ? (
-               <div 
-                  className="prose dark:prose-invert prose-sm max-w-none p-2 rounded-md bg-secondary/30 min-h-[80px]"
-                  dangerouslySetInnerHTML={{ __html: interpolatedPreview || "<span class='text-muted-foreground'>No content to preview.</span>" }}
-                />
-            ) : (
-              activeTemplate.variables.map(variable => (
-                <div key={variable.name} className="space-y-2">
-                  <Label htmlFor={variable.name}>{variable.name}</Label>
-                  <Input
-                    id={variable.name}
-                    value={variableValues[variable.name] || ''}
-                    onChange={e => handleVariableChange(variable.name, e.target.value)}
-                    placeholder={`Enter value for ${variable.name}...`}
-                  />
-                </div>
-              ))
-            )}
-            
-            {activeTemplate.variables.length === 0 && !showPreview && (
-              <p className="text-sm text-center text-muted-foreground py-4">This template has no variables.</p>
-            )}
-          </div>
-
-          <Button onClick={handleExecute} disabled={isCopied} className="w-full mt-4 flex-shrink-0">
-            {isCopied ? 'Copied!' : 'Copy to Clipboard'}
-          </Button>
+          <ActiveTemplateView
+            template={activeTemplate}
+            variableValues={variableValues}
+            onVariableChange={handleVariableChange}
+          >
+            <Button onClick={handleExecute} disabled={isCopied} className="w-full">
+              {isCopied ? 'Copied!' : 'Copy to Clipboard'}
+            </Button>
+          </ActiveTemplateView>
         </div>
       );
     }
@@ -158,7 +131,7 @@ const Popup: React.FC = () => {
           <TemplateList
             templates={templates}
             selectedTemplateId={(activeTemplate as Template | null)?.id ?? null}
-            onTemplateSelect={selectTemplate}
+            onTemplateSelect={handleTemplateSelect}
           />
         ) : (
           <div className="text-center py-10 flex flex-col items-center justify-center h-full">
@@ -167,7 +140,7 @@ const Popup: React.FC = () => {
             <p className="mt-1 text-sm text-muted-foreground">
               Create one in the manager.
             </p>
-            <Button size="sm" className="mt-4" onClick={() => storage.openManager()}>
+            <Button size="sm" className="mt-4" onClick={() => openManager()}>
               Open Manager
             </Button>
           </div>
@@ -184,10 +157,10 @@ const Popup: React.FC = () => {
           <h1 className="text-base font-bold tracking-wider uppercase">Promptly</h1>
         </div>
         <div className="flex items-center">
-          <Button variant="ghost" size="icon" onClick={() => storage.openManager({ action: 'new-template' })} aria-label="New Template">
+          <Button variant="ghost" size="icon" onClick={() => openManager({ newTemplate: true })} aria-label="New Template">
             <Plus className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => storage.openManager()} aria-label="Settings">
+          <Button variant="ghost" size="icon" onClick={() => openManager()} aria-label="Settings">
             <Settings className="h-5 w-5" />
           </Button>
         </div>
@@ -200,4 +173,4 @@ const Popup: React.FC = () => {
   );
 };
 
-export default Popup; 
+export default App; 
