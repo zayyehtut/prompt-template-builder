@@ -113,7 +113,7 @@ function App() {
       // Try to get context from session storage (set by background script)
       const result = await chrome.storage.session.get('popupContext');
       return result.popupContext || {};
-    } catch (error) {
+    } catch {
       return {};
     }
   };

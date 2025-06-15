@@ -53,8 +53,51 @@ The built extension will be in the `dist` folder.
 ### Testing
 
 ```bash
+# Run tests once
 npm test
+
+# Run tests with coverage
+npm run test:ci
+
+# Run tests in watch mode
+npm run test:watch
 ```
+
+### Code Quality
+
+```bash
+# Run linting
+npm run lint
+
+# Fix linting issues
+npm run lint:fix
+
+# Check TypeScript types
+npm run type-check
+
+# Format code
+npm run format
+
+# Check formatting
+npm run format:check
+
+# Run all validations
+npm run validate
+```
+
+### CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+- **Quality Checks**: ESLint, TypeScript, Prettier
+- **Testing**: Automated test suite with coverage reporting
+- **Security**: Dependency auditing and vulnerability scanning
+- **Build Verification**: Extension packaging and validation
+- **Performance**: Bundle size analysis and optimization
+- **Deployment**: Automated releases and artifact management
+
+[![CI/CD Pipeline](https://github.com/zayyehtut/prompt-template-builder/actions/workflows/ci.yml/badge.svg)](https://github.com/zayyehtut/prompt-template-builder/actions/workflows/ci.yml)
+[![Security](https://github.com/zayyehtut/prompt-template-builder/actions/workflows/security.yml/badge.svg)](https://github.com/zayyehtut/prompt-template-builder/actions/workflows/security.yml)
 
 ## 📖 Usage
 

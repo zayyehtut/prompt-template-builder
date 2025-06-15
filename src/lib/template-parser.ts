@@ -160,19 +160,22 @@ export function parseDefaultValue(
   if (!defaultStr) return undefined;
   
   switch (type) {
-    case 'boolean':
+    case 'boolean': {
       const lowerValue = defaultStr.toLowerCase();
       if (['true', '1', 'yes', 'on'].includes(lowerValue)) return true;
       if (['false', '0', 'no', 'off'].includes(lowerValue)) return false;
       return undefined;
+    }
       
-    case 'number':
+    case 'number': {
       const num = parseFloat(defaultStr);
       return isNaN(num) ? undefined : num;
+    }
       
-    case 'date':
+    case 'date': {
       const date = new Date(defaultStr);
       return isNaN(date.getTime()) ? undefined : date;
+    }
       
     case 'select':
     case 'text':

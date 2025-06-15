@@ -43,7 +43,9 @@ export function VariableForm({ template, onSubmit, onBack, initialValues = {} }:
     });
     
     setValues(initialVars);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template.id, template.variables.length]); // Only depend on template ID and variable count
+  // Note: initialValues is intentionally excluded to prevent infinite re-renders
 
   // Validate form
   const validate = (): boolean => {
