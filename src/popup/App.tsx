@@ -94,19 +94,6 @@ const Popup: React.FC = () => {
     setShowPreview(false);
   };
 
-  const templatesByCategory = templates.reduce((acc, template) => {
-    const category = template.favorite ? 'Favorites' : (template.category || 'General');
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(template);
-    return acc;
-  }, {} as Record<string, Template[]>);
-
-  const categories = Object.keys(templatesByCategory).sort((a,b) => {
-    if (a === 'Favorites') return -1;
-    if (b === 'Favorites') return 1;
-    return a.localeCompare(b);
-  });
-
   const renderContent = () => {
     if (isLoading) {
       return (
