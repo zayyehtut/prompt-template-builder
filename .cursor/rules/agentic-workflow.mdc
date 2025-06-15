@@ -1,0 +1,76 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Agentic Development Workflow Guide
+
+This rule outlines how the AI assistant and human collaborators should use GitHub as the single source of truth for context, task management, and progress tracking while building the Prompt Template Builder MVP.
+
+## 1. Core Principle
+* The Technical Specification Document `[TSD.md](mdc:TSD.md)` governs scope and requirements. All tasks must map back to sections of this document.
+* GitHub **issues**, **branches**, and **pull requests** represent the life-cycle of every task. No code change should occur without a corresponding issue.
+
+## 2. Issue-Driven Task Lifecycle
+1. **Open an Issue**  
+   * Title: concise verb-based summary (e.g., "Implement variable parser").  
+   * Body: link to relevant TSD section(s) and acceptance criteria.  
+   * Labels: `MVP`, functional area (e.g., `popup`, `storage`), and priority (`P0` ‑ `P3`).
+
+2. **Analyse**  
+   * Quickly assess task complexity (e.g., predicted LOC, number of modules touched, unknown integrations).  
+   * If complexity ≥ `P2` or touching >2 subsystems, the assistant MUST perform preliminary research:  
+     * Use built-in web search tools to gather domain knowledge, similar OSS examples, API docs, and best practices.  
+     * Summarise findings in the issue or a comment before coding begins, citing URLs.  
+   * Optionally reference contribution-complexity heuristics [Pfeiffer 2021](mdc:https:/www.itu.dk/~ropf/blog/assets/quatic2021_pfeiffer.pdf) for finer granularity.
+
+3. **Plan**  
+   * The assistant may propose subtasks in the issue body or create child issues.  
+   * Complex work -> create a **GitHub project** board or use issue check-lists.
+4. **Branch**  
+   * Use `feat/<issue-number>-<slug>` or `fix/<issue-number>-<slug>` naming.  
+   * Branch always starts from `main`.
+5. **Commit**  
+   * Conventional Commits format: `feat: TSD-1 Implement variable parser (#12)`  
+   * First line ≤ 72 chars, reference issue number.
+6. **Pull Request**  
+   * Draft until all automated checks pass.  
+   * Description must include "Closes #<issue>" and testing notes.  
+   * At least one reviewer required (self-review allowed for AI-generated PRs, but human approval recommended).
+7. **Merge** only after review approval and CI green. Use **squash** to keep history clean.
+8. **Release Tagging**  
+   * Tag `mvp-<date>` when all `MVP` issues closed.
+
+## 3. Using the GitHub MCP Server
+* The assistant should invoke GitHub operations through the provided MCP tools (e.g., `create_branch`, `create_issue`, `push_files`).
+* Always include a short natural-language explanation in the tool call `explanation` field.
+* Before pushing, ensure local tests (`npm run test`) and linting (`npm run lint`) succeed.
+
+## 4. Branch Hygiene
+* Keep branches small (< 400 LOC diff) and focused.  
+* Rebase onto `main` frequently; resolve conflicts locally.
+
+## 5. Context Synchronisation
+* Reference code using the mandated citation format (see Cursor rules).  
+* When discussing or closing tasks, cite the issue or PR link.
+* Summaries must contain direct links to GitHub resources for future reference.
+
+## 6. MVP Focus
+* Prioritise tasks labelled `MVP`. Defer `Future` items unless they unblock MVP.  
+* If scope creep detected, open a new issue tagged `Post-MVP`.
+
+## 7. Automation & CI
+* The repository must include GitHub Actions to run `lint`, `type-check`, `test`, and `build`.  
+* PRs failing CI cannot be merged.
+
+## 8. Documentation
+* Update `[README.md](mdc:README.md)` and relevant docs with each new feature.  
+* For API/event schemas, keep docs in `docs/` and link from issues/PRs.
+
+---
+
+Avaliable MCP : Github MCP for GithHub Related Task 
+Projct Github Link: https://github.com/zayyehtut/prompt-template-builder.git
+
+
+
