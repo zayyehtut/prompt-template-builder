@@ -227,7 +227,7 @@ export const TemplateManager: React.FC = () => {
         isSaveDisabled={!isDirty}
       />
       
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden pt-16">
         <Sidebar
           templates={filteredTemplates}
           selectedTemplate={state.selectedTemplate}

@@ -28,21 +28,32 @@ const EditorArea = ({
       },
     },
     onUpdate: ({ editor }) => {
-      onContentChange(editor.getHTML());
-      const variables = (editor.getText().match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || []).map(v =>
-        v.slice(2, -2)
-      );
-      onVariablesExtract([...new Set(variables)]);
+      const html = editor.getHTML();
+      onContentChange(html);
+      extractVariablesFromContent(html);
     },
   });
 
+  const extractVariablesFromContent = (content: string) => {
+    // Use HTML content to find variable nodes, or text as a fallback
+    const variableRegex = /\{\{([a-zA-Z0-9_]+)\}\}/g;
+    const matches = content.match(variableRegex) || [];
+    const variables = matches.map(v => v.slice(2, -2));
+    onVariablesExtract([...new Set(variables)]);
+  };
+
   useEffect(() => {
-    if (template && editor && !editor.isDestroyed) {
-      if (editor.getHTML() !== template.content) {
-        editor.commands.setContent(template.content, false);
+    if (editor && !editor.isDestroyed) {
+      if (template) {
+        // Only update if the content is actually different
+        if (editor.getHTML() !== template.content) {
+          editor.commands.setContent(template.content, false); // Don't trigger onUpdate
+          // Manually extract variables on initial load
+          extractVariablesFromContent(template.content);
+        }
+      } else {
+        editor.commands.clearContent(false);
       }
-    } else if (!template && editor && !editor.isDestroyed) {
-      editor.commands.clearContent(false);
     }
   }, [template, editor]);
   
