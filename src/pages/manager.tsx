@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { createRoot } from 'react-dom/client';
 import { Navigation } from './components/Layout/Navigation';
 import { Sidebar } from './components/Layout/Sidebar';
 import EditorArea from './components/Editor/EditorArea';
@@ -260,17 +259,4 @@ export const TemplateManager: React.FC = () => {
 // Utility function to generate IDs
 const generateId = (): string => {
   return `template_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-};
-
-// Mount the app
-const container = document.getElementById('root');
-if (container) {
-  const root = createRoot(container);
-  root.render(
-    <React.StrictMode>
-      <TemplateManager />
-    </React.StrictMode>
-  );
-} else {
-  console.error('App container not found');
-} 
+}; 
