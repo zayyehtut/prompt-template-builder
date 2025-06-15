@@ -1,0 +1,54 @@
+/* 
+  This file contains the base typography styles for the .prose class.
+  It ensures that both the popup and the template manager have a 
+  consistent look and feel for rendered content.
+*/
+
+@layer base {
+  .prose {
+    @apply text-foreground;
+  }
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4,
+  .prose h5,
+  .prose h6 {
+    @apply text-foreground font-semibold;
+  }
+  .prose a {
+    @apply text-primary hover:text-primary/80;
+  }
+  .prose blockquote {
+    @apply border-l-4 border-primary/50 pl-4 text-muted-foreground;
+  }
+  .prose code {
+    @apply rounded bg-muted px-1 py-0.5 font-mono text-sm text-muted-foreground;
+  }
+  .prose pre {
+    @apply rounded-lg bg-muted p-4 text-sm;
+  }
+  .prose ul,
+  .prose ol {
+    @apply pl-6;
+  }
+  .prose hr {
+    @apply border-border;
+  }
+  .prose strong {
+    @apply font-bold text-foreground;
+  }
+  .prose table {
+    @apply w-full;
+  }
+  .prose thead {
+    @apply border-b border-border;
+  }
+  .prose tbody tr {
+    @apply border-b border-border;
+  }
+  .prose td,
+  .prose th {
+    @apply p-2 text-left;
+  }
+} 

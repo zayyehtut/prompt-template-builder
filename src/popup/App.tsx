@@ -5,9 +5,9 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Template } from '@/types/template';
 import { storage } from '@/lib/storage';
-import { interpolateTemplate, convertTiptapContentToText } from '@/lib/interpolation';
+import { interpolateTemplate, convertTiptapContentToText, interpolateTiptapContent } from '@/lib/interpolation';
 import { useTheme } from '@/hooks/useTheme';
-import { Settings, Plus, FileText, Loader2, ArrowLeft, Star, Folder } from 'lucide-react';
+import { Settings, Plus, FileText, Loader2, ArrowLeft, Star, Folder, Eye } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import '../index.css';
 
@@ -32,6 +32,7 @@ const Popup: React.FC = () => {
   const [variableValues, setVariableValues] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     loadTemplates();
@@ -48,9 +49,10 @@ const Popup: React.FC = () => {
     if (!activeTemplate || isCopied) return;
 
     try {
-      const outputText = convertTiptapContentToText(activeTemplate.content);
-      const output = interpolateTemplate(outputText, variableValues);
-      await navigator.clipboard.writeText(output);
+      const interpolated = interpolateTiptapContent(activeTemplate.content, variableValues);
+      const outputText = convertTiptapContentToText(interpolated);
+      
+      await navigator.clipboard.writeText(outputText);
       setIsCopied(true);
       
       const updatedTemplate = { 
@@ -65,7 +67,7 @@ const Popup: React.FC = () => {
         templateId: activeTemplate.id,
         templateName: activeTemplate.name,
         variables: variableValues,
-        output,
+        output: outputText,
         executedAt: Date.now(),
       });
       
@@ -74,6 +76,7 @@ const Popup: React.FC = () => {
     } catch (error) {
       console.error('Failed to execute template:', error);
     }
+    setShowPreview(false);
   };
 
   const handleVariableChange = (name: string, value: any) => {
@@ -88,6 +91,7 @@ const Popup: React.FC = () => {
         return acc;
       }, {} as Record<string, any>)
     );
+    setShowPreview(false);
   };
 
   const templatesByCategory = templates.reduce((acc, template) => {
@@ -113,33 +117,47 @@ const Popup: React.FC = () => {
     }
 
     if (activeTemplate) {
-      const previewText = convertTiptapContentToText(activeTemplate.content);
+      const interpolatedPreview = interpolateTiptapContent(activeTemplate.content, variableValues);
+
       return (
         <div className="p-4 space-y-4 flex-1 flex flex-col">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => setActiveTemplate(null)}>
-              <ArrowLeft className="h-5 w-5" />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-1 overflow-hidden">
+              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => setActiveTemplate(null)}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <h3 className="text-base font-semibold truncate">{activeTemplate.name}</h3>
+            </div>
+            <Button variant={showPreview ? "secondary" : "ghost"} size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => setShowPreview(!showPreview)}>
+                <Eye className="h-5 w-5" />
             </Button>
-            <h3 className="text-base font-semibold truncate">{activeTemplate.name}</h3>
           </div>
           
           <div className="space-y-3 flex-1 overflow-y-auto -mr-2 pr-2">
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{previewText}</p>
-
-            {activeTemplate.variables.length > 0 && <Separator className="my-3"/>}
-
-            {activeTemplate.variables.map(variable => (
-              <div key={variable.name} className="space-y-2">
-                <Label htmlFor={variable.name}>{variable.name}</Label>
-                <Input
-                  id={variable.name}
-                  value={variableValues[variable.name] || ''}
-                  onChange={e => handleVariableChange(variable.name, e.target.value)}
-                  placeholder={`Enter value for ${variable.name}...`}
+            {showPreview ? (
+               <div 
+                  className="prose dark:prose-invert prose-sm max-w-none p-2 rounded-md bg-secondary/30 min-h-[80px]"
+                  dangerouslySetInnerHTML={{ __html: interpolatedPreview || "<span class='text-muted-foreground'>No content to preview.</span>" }}
                 />
-              </div>
-            ))}
+            ) : (
+              activeTemplate.variables.map(variable => (
+                <div key={variable.name} className="space-y-2">
+                  <Label htmlFor={variable.name}>{variable.name}</Label>
+                  <Input
+                    id={variable.name}
+                    value={variableValues[variable.name] || ''}
+                    onChange={e => handleVariableChange(variable.name, e.target.value)}
+                    placeholder={`Enter value for ${variable.name}...`}
+                  />
+                </div>
+              ))
+            )}
+            
+            {activeTemplate.variables.length === 0 && !showPreview && (
+              <p className="text-sm text-center text-muted-foreground py-4">This template has no variables.</p>
+            )}
           </div>
+
           <Button onClick={handleExecute} disabled={isCopied} className="w-full mt-4 flex-shrink-0">
             {isCopied ? 'Copied!' : 'Copy to Clipboard'}
           </Button>
