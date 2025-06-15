@@ -52,7 +52,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   };
 
   return (
-    <aside className="w-96 p-4 border-l bg-background flex-col hidden xl:flex">
+    <aside className="w-96 p-4 border-l bg-background flex-col hidden xl:flex overflow-hidden">
       <h2 className="text-xl font-semibold mb-4">Properties</h2>
       <Tabs defaultValue="properties" className="flex-1 flex flex-col">
         <TabsList className="grid w-full grid-cols-3">
