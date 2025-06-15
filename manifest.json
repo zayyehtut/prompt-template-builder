@@ -39,7 +39,12 @@
     }
   ],
   
-
+  "web_accessible_resources": [
+    {
+      "resources": ["src/pages/manager.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   
   "commands": {
     "open-popup": {
