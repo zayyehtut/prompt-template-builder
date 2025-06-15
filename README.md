@@ -87,17 +87,16 @@ npm run validate
 
 ### CI/CD Pipeline
 
-This project uses GitHub Actions for continuous integration and deployment:
+This project uses GitHub Actions for continuous integration (free tier):
 
-- **Quality Checks**: ESLint, TypeScript, Prettier
-- **Testing**: Automated test suite with coverage reporting
-- **Security**: Dependency auditing and vulnerability scanning
-- **Build Verification**: Extension packaging and validation
-- **Performance**: Bundle size analysis and optimization
-- **Deployment**: Automated releases and artifact management
+- **Quality Checks**: ESLint, TypeScript linting
+- **Testing**: Automated test suite with local coverage reporting
+- **Security**: Basic dependency auditing and license checking
+- **Build Verification**: Extension building and validation
+- **Performance**: Bundle size analysis with limits
 
-[![CI/CD Pipeline](https://github.com/zayyehtut/prompt-template-builder/actions/workflows/ci.yml/badge.svg)](https://github.com/zayyehtut/prompt-template-builder/actions/workflows/ci.yml)
-[![Security](https://github.com/zayyehtut/prompt-template-builder/actions/workflows/security.yml/badge.svg)](https://github.com/zayyehtut/prompt-template-builder/actions/workflows/security.yml)
+[![CI Pipeline](https://github.com/zayyehtut/prompt-template-builder/actions/workflows/ci.yml/badge.svg)](https://github.com/zayyehtut/prompt-template-builder/actions/workflows/ci.yml)
+[![Security Checks](https://github.com/zayyehtut/prompt-template-builder/actions/workflows/security.yml/badge.svg)](https://github.com/zayyehtut/prompt-template-builder/actions/workflows/security.yml)
 
 ## 📖 Usage
 

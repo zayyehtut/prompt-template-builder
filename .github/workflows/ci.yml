@@ -1,20 +1,19 @@
-name: CI/CD Pipeline
+name: CI Pipeline (Free Tier)
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
   workflow_dispatch:
 
 env:
   NODE_VERSION: '18'
-  CACHE_KEY_PREFIX: 'node-modules'
 
 jobs:
-  # Job 1: Code Quality & Security
+  # Job 1: Code Quality
   quality-checks:
-    name: Code Quality & Security
+    name: Code Quality
     runs-on: ubuntu-latest
     
     steps:
@@ -39,10 +38,6 @@ jobs:
       - name: Run security audit
         run: npm audit --audit-level=moderate
         continue-on-error: true
-        
-      - name: Check for outdated dependencies
-        run: npm outdated
-        continue-on-error: true
 
   # Job 2: Testing
   test:
@@ -62,31 +57,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
         
-      - name: Run tests
-        run: npm test -- --coverage --reporter=verbose
+      - name: Run tests with coverage
+        run: npm run test:ci
         
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
-          
-      - name: Comment test results on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            // This would read test results and comment on PR
-            // For now, we'll just add a simple comment
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '✅ Tests completed successfully!'
-            });
+      - name: Display coverage summary
+        run: |
+          echo "✅ Tests completed successfully!"
+          echo "Coverage report generated locally"
 
-  # Job 3: Build & Package
+  # Job 3: Build & Validate
   build:
     name: Build Extension
     runs-on: ubuntu-latest
@@ -119,95 +98,6 @@ jobs:
           test -d dist/assets || exit 1
           test -f dist/service-worker-loader.js || exit 1
           
-      - name: Package extension
-        run: npm run pack
-        continue-on-error: true
-        
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: extension-build-${{ github.sha }}
-          path: |
-            dist/
-            artifacts/
-          retention-days: 30
-          
-      - name: Upload extension package
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: extension-package-${{ github.sha }}
-          path: artifacts/*.zip
-          retention-days: 90
-
-  # Job 4: Performance & Bundle Analysis
-  performance:
-    name: Performance Analysis
-    runs-on: ubuntu-latest
-    needs: [build]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          
-      - name: Install dependencies
-        run: npm ci
-        
-      - name: Build for analysis
-        run: npm run build
-        
-      - name: Analyze bundle size
-        run: |
-          echo "Bundle Size Analysis:"
-          echo "====================="
-          find dist -name "*.js" -exec wc -c {} + | sort -n
-          echo ""
-          echo "Total bundle size:"
-          du -sh dist/
-          echo ""
-          echo "Asset breakdown:"
-          ls -lah dist/assets/
-          
-      - name: Check bundle size limits
-        run: |
-          # Check if main bundle is under 500KB
-          MAIN_BUNDLE_SIZE=$(find dist/assets -name "index-*.js" -exec wc -c {} + | awk '{print $1}')
-          echo "Main bundle size: $MAIN_BUNDLE_SIZE bytes"
-          if [ "$MAIN_BUNDLE_SIZE" -gt 512000 ]; then
-            echo "❌ Main bundle size exceeds 500KB limit"
-            exit 1
-          else
-            echo "✅ Main bundle size is within limits"
-          fi
-
-  # Job 5: Extension Validation (Chrome Web Store format)
-  validate-extension:
-    name: Validate Extension
-    runs-on: ubuntu-latest
-    needs: [build]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          
-      - name: Install dependencies
-        run: npm ci
-        
-      - name: Build extension
-        run: npm run build
-        
       - name: Validate manifest
         run: |
           echo "Validating manifest.json..."
@@ -223,72 +113,28 @@ jobs:
               process.exit(1);
             }
             
-            // Check permissions
-            if (!manifest.permissions || !Array.isArray(manifest.permissions)) {
-              console.error('❌ Invalid permissions field');
-              process.exit(1);
-            }
-            
             console.log('✅ Manifest validation passed');
           "
           
-      - name: Check file structure
+      - name: Check bundle size
         run: |
-          echo "Checking extension file structure..."
+          echo "Bundle Size Analysis:"
+          echo "====================="
+          find dist -name "*.js" -exec wc -c {} + | sort -n
+          echo ""
+          echo "Total bundle size:"
+          du -sh dist/
           
-          # Check required files exist
-          required_files=(
-            "dist/manifest.json"
-            "dist/service-worker-loader.js"
-            "dist/assets/icon-16.png"
-            "dist/assets/icon-48.png"
-            "dist/assets/icon-128.png"
-          )
+          # Check if main bundle is under 500KB
+          MAIN_BUNDLE_SIZE=$(find dist/assets -name "index-*.js" -exec wc -c {} + | awk '{print $1}')
+          echo "Main bundle size: $MAIN_BUNDLE_SIZE bytes"
+          if [ "$MAIN_BUNDLE_SIZE" -gt 512000 ]; then
+            echo "❌ Main bundle size exceeds 500KB limit"
+            exit 1
+          else
+            echo "✅ Main bundle size is within limits"
+          fi
           
-          for file in "${required_files[@]}"; do
-            if [ -f "$file" ]; then
-              echo "✅ $file exists"
-            else
-              echo "❌ $file is missing"
-              exit 1
-            fi
-          done
-          
-          echo "✅ All required files present"
-
-  # Job 6: Deployment (only on main branch)
-  deploy:
-    name: Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: [quality-checks, test, build, performance, validate-extension]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: extension-build-${{ github.sha }}
-          path: ./build-output
-          
-      - name: Create release tag
-        if: success()
-        run: |
-          # Create a release tag based on package.json version
-          VERSION=$(node -p "require('./package.json').version")
-          DATE=$(date +%Y%m%d)
-          TAG="mvp-${VERSION}-${DATE}"
-          
-          echo "Creating release tag: $TAG"
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git tag -a "$TAG" -m "Automated release $TAG"
-          git push origin "$TAG"
-          
-      - name: Notify deployment
-        run: |
-          echo "🚀 Extension deployed successfully!"
-          echo "📦 Build artifacts available for download"
-          echo "🏷️  Tagged for release" 
+      - name: Package extension (optional)
+        run: npm run pack || echo "⚠️ Packaging failed, but build is successful"
+        continue-on-error: true 

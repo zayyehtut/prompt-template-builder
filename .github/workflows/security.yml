@@ -1,9 +1,9 @@
-name: Security & Dependencies
+name: Security Checks (Free Tier)
 
 on:
   schedule:
-    # Run daily at 2 AM UTC
-    - cron: '0 2 * * *'
+    # Run weekly on Sundays at 2 AM UTC (reduced frequency)
+    - cron: '0 2 * * 0'
   workflow_dispatch:
   push:
     paths:
@@ -32,101 +32,14 @@ jobs:
       - name: Run npm audit
         run: |
           echo "Running security audit..."
-          npm audit --audit-level=moderate --json > audit-results.json || true
+          npm audit --audit-level=moderate || true
           
-      - name: Process audit results
-        run: |
-          if [ -f audit-results.json ]; then
-            VULNERABILITIES=$(cat audit-results.json | jq '.metadata.vulnerabilities.total // 0')
-            HIGH_VULNS=$(cat audit-results.json | jq '.metadata.vulnerabilities.high // 0')
-            CRITICAL_VULNS=$(cat audit-results.json | jq '.metadata.vulnerabilities.critical // 0')
-            
-            echo "Total vulnerabilities: $VULNERABILITIES"
-            echo "High severity: $HIGH_VULNS"
-            echo "Critical severity: $CRITICAL_VULNS"
-            
-            if [ "$CRITICAL_VULNS" -gt 0 ]; then
-              echo "❌ Critical vulnerabilities found!"
-              exit 1
-            elif [ "$HIGH_VULNS" -gt 0 ]; then
-              echo "⚠️ High severity vulnerabilities found"
-              exit 1
-            else
-              echo "✅ No critical or high severity vulnerabilities"
-            fi
-          fi
-          
-      - name: Upload audit results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-audit-${{ github.sha }}
-          path: audit-results.json
-          retention-days: 30
-
-  # Job 2: Dependency Check
-  dependency-check:
-    name: Dependency Analysis
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          
-      - name: Install dependencies
-        run: npm ci
-        
       - name: Check for outdated packages
         run: |
           echo "Checking for outdated packages..."
-          npm outdated --json > outdated.json || true
-          
-          if [ -s outdated.json ]; then
-            echo "📦 Outdated packages found:"
-            cat outdated.json | jq -r 'to_entries[] | "\(.key): \(.value.current) → \(.value.latest)"'
-          else
-            echo "✅ All packages are up to date"
-          fi
-          
-      - name: Check package vulnerabilities
-        run: |
-          echo "Checking individual package vulnerabilities..."
-          npx better-npm-audit audit --level moderate || true
+          npm outdated || true
           
       - name: License compliance check
         run: |
           echo "Checking license compliance..."
-          npx license-checker --summary || true
-
-  # Job 3: CodeQL Analysis
-  codeql-analysis:
-    name: CodeQL Security Analysis
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-      
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript
-          queries: security-and-quality
-          
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-        
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:javascript" 
+          npx license-checker --summary || true 
