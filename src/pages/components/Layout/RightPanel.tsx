@@ -173,11 +173,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 <CardTitle>Live Preview</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="prose dark:prose-invert prose-sm max-w-none p-4 border rounded-md bg-secondary/30 min-h-[100px]">
-                  <pre className="whitespace-pre-wrap font-sans text-sm">
-                    {template.content || "No content to preview."}
-                  </pre>
-                </div>
+                <div 
+                  className="prose dark:prose-invert prose-sm max-w-none p-4 border rounded-md bg-secondary/30 min-h-[100px]"
+                  dangerouslySetInnerHTML={{ __html: template.content || "No content to preview." }}
+                />
               </CardContent>
             </Card>
           </TabsContent>

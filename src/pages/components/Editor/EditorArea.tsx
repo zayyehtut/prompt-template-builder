@@ -50,11 +50,14 @@ const EditorArea = ({
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
       if (template) {
-        // Only update if the content is actually different
-        if (editor.getHTML() !== template.content) {
-          editor.commands.setContent(template.content, false); // Don't trigger onUpdate
-          // Manually extract variables on initial load by letting the editor process the content
-          // and then running our extraction function.
+        // Pre-process the content to convert {{...}} into the format our VariableNode understands.
+        const processedContent = template.content.replace(
+          /\{\{([a-zA-Z0-9_]+)\}\}/g,
+          '<span data-name="$1"></span>'
+        );
+        
+        if (editor.getHTML() !== processedContent) {
+          editor.commands.setContent(processedContent, false); // Don't trigger onUpdate
           extractVariablesFromContent();
         }
       } else {
