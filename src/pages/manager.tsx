@@ -63,6 +63,19 @@ const TemplateManagerContent: React.FC = () => {
     }
   }, [state.selectedTemplate, state.isDirty, saveTemplateSuccess]);
 
+  // Auto-save templates after a delay
+  useEffect(() => {
+    if (!state.isDirty || !state.selectedTemplate) return;
+
+    const handler = setTimeout(() => {
+      handleTemplateSave();
+    }, 1000); // 1-second debounce
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [state.selectedTemplate, state.isDirty, handleTemplateSave]);
+
   const handleTemplateDelete = async (templateId: string) => {
     try {
       await storage.deleteTemplate(templateId);

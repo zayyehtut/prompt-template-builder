@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { Settings, Plus, FileText, Loader2, ArrowLeft, Star, Folder, Eye } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import '../index.css';
+import { TemplateList } from '@/components/common/TemplateList';
 
 const AppLogo = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-primary">
@@ -167,27 +168,11 @@ const Popup: React.FC = () => {
     return (
       <div className="p-4 flex-1 overflow-y-auto">
         {templates.length > 0 ? (
-          <div className="space-y-4">
-            {categories.map(category => (
-              <div key={category}>
-                <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground px-2 mb-2 uppercase tracking-wider">
-                  {category === 'Favorites' ? <Star className="w-4 h-4 text-yellow-400" /> : <Folder className="w-4 h-4" />}
-                  {category}
-                </h3>
-                <div className="space-y-1">
-                  {templatesByCategory[category].map(template => (
-                    <div
-                      key={template.id}
-                      className="group flex items-center justify-between pl-3 pr-2 py-2 rounded-md cursor-pointer border-l-2 border-transparent text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
-                      onClick={() => selectTemplate(template)}
-                    >
-                      <span className="font-medium truncate flex-1">{template.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <TemplateList
+            templates={templates}
+            selectedTemplateId={(activeTemplate as Template | null)?.id ?? null}
+            onTemplateSelect={selectTemplate}
+          />
         ) : (
           <div className="text-center py-10 flex flex-col items-center justify-center h-full">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
