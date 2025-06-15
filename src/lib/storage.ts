@@ -1,4 +1,4 @@
-import type { Template, UserSettings } from '@/types/storage';
+import type { Template, UserSettings, ExecutionRecord } from '@/types/storage';
 
 /**
  * Extension storage management with chrome.storage API
@@ -68,6 +68,35 @@ export class ExtensionStorage {
       syncEnabled: false,
     };
   }
+
+  // History management (simplified to use chrome.storage.local for now)
+  async addToHistory(record: ExecutionRecord): Promise<void> {
+    try {
+      const { history = [] } = await chrome.storage.local.get('history');
+      history.push(record);
+      
+      // Keep only last 100 records
+      if (history.length > 100) {
+        history.splice(0, history.length - 100);
+      }
+      
+      await chrome.storage.local.set({ history });
+    } catch (error) {
+      console.error('Failed to add to history:', error);
+    }
+  }
+
+  async getHistory(limit: number = 50): Promise<ExecutionRecord[]> {
+    try {
+      const { history = [] } = await chrome.storage.local.get('history');
+      return history.slice(-limit).reverse();
+    } catch (error) {
+      console.error('Failed to get history:', error);
+      return [];
+    }
+  }
+
+
 }
 
 // Export singleton instance

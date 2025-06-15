@@ -13,6 +13,8 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
 
     /* Linting */
     "strict": true,
@@ -27,8 +29,8 @@
     },
 
     /* Chrome extension types */
-    "types": ["chrome", "vite/client"]
+    "types": ["chrome", "vite/client", "@testing-library/jest-dom"]
   },
-  "include": ["src", "manifest.json"],
+  "include": ["src", "tests", "manifest.json"],
   "references": [{ "path": "./tsconfig.node.json" }]
 } 
