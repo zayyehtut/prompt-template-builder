@@ -1,15 +1,25 @@
 # Prompt Template Builder
 
-A browser extension for creating and managing reusable prompt templates with variables for AI interactions.
+A professional browser extension for creating, managing, and executing reusable prompt templates with a VS Code-inspired, keyboard-first workflow.
 
-## 🚀 Features
+## ✨ Core Features
 
-- **Template Management**: Create, edit, and organize prompt templates
-- **Variable System**: Support for typed variables (text, number, boolean, select, date)
-- **Quick Access**: Keyboard shortcuts and context menus
-- **Local Storage**: All data stored locally in the browser
-- **AI Integration**: Direct integration with popular AI platforms
-- **Smart Organization**: Auto-categorization and tagging
+- **Dedicated Management Page**: A full-screen, VS Code-style interface for managing your template library.
+- **Unified Preview & Input**: A consistent component for inputting variables and previewing template output, used in both the popup and the manager.
+- **Resizable Panels**: A flexible layout with resizable sidebars to customize your workspace.
+- **Robust Theme System**: Professional light and dark themes that are perfectly synchronized across the extension.
+- **Quick Access Popup**: A compact popup for quickly finding and executing your templates.
+- **Local Storage**: All data is stored securely in your browser.
+- **Full CRUD Operations**: Create, read, update, and delete templates with an auto-saving editor.
+
+## 🚀 Upcoming Features
+
+Based on our [Technical Specification Document (TSD.md)](TSD.md), our next priorities are:
+
+- **Command Palette**: A `Cmd+K` interface for quick actions and navigation.
+- **Smart Text-to-Variable**: Advanced context-aware tools to automatically detect and convert text into variables.
+- **Full Keyboard Navigation**: Complete keyboard-driven control over the entire interface.
+- **Template Analytics**: Insights into template usage and performance.
 
 ## 🛠 Development Setup
 
