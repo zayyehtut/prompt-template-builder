@@ -86,6 +86,8 @@ const EditorArea = ({ onSave }: EditorAreaProps) => {
         
         if (editor.getHTML() !== processedContent) {
           editor.commands.setContent(processedContent, false);
+          // Persist the processed content and extracted variables to the global state
+          handleContentChange(processedContent);
           extractVariablesFromContent();
         }
       } else {
