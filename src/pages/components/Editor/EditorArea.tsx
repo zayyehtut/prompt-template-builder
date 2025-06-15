@@ -78,14 +78,8 @@ const EditorArea = ({ onSave }: EditorAreaProps) => {
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
       if (template) {
-        // Pre-process the content to convert {{...}} into the format our VariableNode understands.
-        const processedContent = template.content.replace(
-          /\{\{([a-zA-Z0-9_]+)\}\}/g,
-          '<span data-name="$1"></span>'
-        );
-        
-        if (editor.getHTML() !== processedContent) {
-          editor.commands.setContent(processedContent, false);
+        if (editor.getHTML() !== template.content) {
+          editor.commands.setContent(template.content, false);
           extractVariablesFromContent();
         }
       } else {
