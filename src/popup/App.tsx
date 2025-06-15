@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { Template } from '@/types/template';
 import { storage } from '@/lib/storage';
 import { interpolateTemplate } from '@/lib/interpolation';
@@ -95,6 +96,19 @@ const Popup: React.FC = () => {
       return (
         <div className="p-4 space-y-4">
           <h3 className="text-lg font-semibold">{activeTemplate.name}</h3>
+          
+          <div className="space-y-2">
+            <Label>Template Preview</Label>
+            <Card>
+              <CardContent 
+                className="p-3 text-sm prose dark:prose-invert max-w-none max-h-40 overflow-y-auto"
+                dangerouslySetInnerHTML={{ __html: activeTemplate.content }}
+              />
+            </Card>
+          </div>
+
+          <Separator />
+
           {activeTemplate.variables.map(variable => (
             <div key={variable.name} className="space-y-2">
               <Label htmlFor={variable.name}>{variable.name}</Label>
