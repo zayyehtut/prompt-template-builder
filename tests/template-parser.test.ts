@@ -201,9 +201,9 @@ describe('Template Parser', () => {
     });
 
     it('should parse date values', () => {
-      const validDate = parseDefaultValue('2023-01-01', 'date');
+      const validDate = parseDefaultValue('2023-01-01', 'date') as Date;
       expect(validDate).toBeInstanceOf(Date);
-      expect(validDate?.getFullYear()).toBe(2023);
+      expect(validDate.getFullYear()).toBe(2023);
       
       const invalidDate = parseDefaultValue('invalid_date', 'date');
       expect(invalidDate).toBeUndefined();
