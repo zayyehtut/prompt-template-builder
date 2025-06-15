@@ -45,4 +45,7 @@ coverage/
 
 # Temporary folders
 tmp/
-temp/ 
+temp/
+
+# Misc
+.cursorrule 
