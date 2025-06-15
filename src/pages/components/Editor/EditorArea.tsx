@@ -30,15 +30,20 @@ const EditorArea = ({
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       onContentChange(html);
-      extractVariablesFromContent(html);
+      extractVariablesFromContent();
     },
   });
 
-  const extractVariablesFromContent = (content: string) => {
-    // Use HTML content to find variable nodes, or text as a fallback
-    const variableRegex = /\{\{([a-zA-Z0-9_]+)\}\}/g;
-    const matches = content.match(variableRegex) || [];
-    const variables = matches.map(v => v.slice(2, -2));
+  const extractVariablesFromContent = () => {
+    if (!editor) return;
+
+    const variables: string[] = [];
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === 'variable') {
+        variables.push(node.attrs.name);
+      }
+    });
+
     onVariablesExtract([...new Set(variables)]);
   };
 
@@ -48,8 +53,9 @@ const EditorArea = ({
         // Only update if the content is actually different
         if (editor.getHTML() !== template.content) {
           editor.commands.setContent(template.content, false); // Don't trigger onUpdate
-          // Manually extract variables on initial load
-          extractVariablesFromContent(template.content);
+          // Manually extract variables on initial load by letting the editor process the content
+          // and then running our extraction function.
+          extractVariablesFromContent();
         }
       } else {
         editor.commands.clearContent(false);
