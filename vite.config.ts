@@ -18,7 +18,6 @@ export default defineConfig({
       input: {
         manager: 'src/pages/manager.html',
         popup: 'src/popup/index.html',
-        content: 'src/content/index.ts',
         background: 'src/background/service-worker.ts',
       },
     },
