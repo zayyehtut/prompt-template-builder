@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Plus, Palette, Save, Search } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { useTemplateManager } from '@/contexts/TemplateManagerContext';
+import { useTemplateActions } from '@/hooks/useTemplateActions';
 
 interface NavigationProps {
   onSave: () => void;
@@ -26,14 +27,15 @@ const AppLogo = () => (
 
 export const Navigation: React.FC<NavigationProps> = ({ onSave }) => {
   const { theme, toggleTheme } = useTheme();
-  const { state, dispatch } = useTemplateManager();
+  const { state } = useTemplateManager();
+  const { setSearchQuery, createNewTemplate } = useTemplateActions();
 
   const handleSearch = (query: string) => {
-    dispatch({ type: 'SET_SEARCH_QUERY', payload: query });
+    setSearchQuery(query);
   };
   
   const handleNewTemplate = () => {
-    dispatch({ type: 'CREATE_NEW_TEMPLATE' });
+    createNewTemplate();
   };
 
   return (

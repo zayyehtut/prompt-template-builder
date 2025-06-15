@@ -5,25 +5,29 @@ import { Toolbar } from './Toolbar';
 import { VariableNode } from './VariableNode';
 import { Input } from '@/components/ui/input';
 import { useTemplateManager } from '@/contexts/TemplateManagerContext';
+import { useTemplateActions } from '@/hooks/useTemplateActions';
+import { EmptyState } from '@/components/common/EmptyState';
+import { FileText } from 'lucide-react';
 
 interface EditorAreaProps {
   onSave: () => void;
 }
 
 const EditorArea = ({ onSave }: EditorAreaProps) => {
-  const { state, dispatch } = useTemplateManager();
+  const { state } = useTemplateManager();
+  const { updateSelectedTemplate, extractVariables } = useTemplateActions();
   const { selectedTemplate: template } = state;
 
   const handleNameChange = (name: string) => {
-    dispatch({ type: 'UPDATE_SELECTED_TEMPLATE', payload: { name } });
+    updateSelectedTemplate({ name });
   };
 
   const handleContentChange = (content: string) => {
-    dispatch({ type: 'UPDATE_SELECTED_TEMPLATE', payload: { content } });
+    updateSelectedTemplate({ content });
   };
 
   const handleVariablesExtract = (variables: string[]) => {
-    dispatch({ type: 'EXTRACT_VARIABLES', payload: variables });
+    extractVariables(variables);
   };
   
   const editor = useEditor({
@@ -92,11 +96,13 @@ const EditorArea = ({ onSave }: EditorAreaProps) => {
 
   if (!template) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-card text-center p-8">
-        <div>
-          <h3 className="text-xl font-semibold text-foreground">Select a template</h3>
-          <p className="text-muted-foreground mt-2">or create a new one to start editing.</p>
-        </div>
+      <div className="flex-1 flex flex-col items-center justify-center bg-card text-center p-8">
+        <EmptyState
+          icon={FileText}
+          title="Select a template"
+          description="or create a new one to start editing."
+          className="border-none m-0"
+        />
       </div>
     );
   }

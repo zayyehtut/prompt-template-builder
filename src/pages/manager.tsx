@@ -6,10 +6,18 @@ import { RightPanel } from './components/Layout/RightPanel';
 import { storage } from '../lib/storage';
 import { useTheme } from '@/hooks/useTheme';
 import { TemplateManagerProvider, useTemplateManager } from '@/contexts/TemplateManagerContext';
+import { useTemplateActions } from '@/hooks/useTemplateActions';
 
 const TemplateManagerContent: React.FC = () => {
   const { theme } = useTheme();
-  const { state, dispatch } = useTemplateManager();
+  const { state } = useTemplateManager();
+  const {
+    startLoading,
+    setTemplates,
+    createFromContext,
+    saveTemplateSuccess,
+    deleteTemplate,
+  } = useTemplateActions();
 
   useEffect(() => {
     loadTemplates();
@@ -17,13 +25,13 @@ const TemplateManagerContent: React.FC = () => {
   }, []);
 
   const loadTemplates = async () => {
-    dispatch({ type: 'START_LOADING' });
+    startLoading();
     try {
       const templatesData = await storage.getTemplates();
-      dispatch({ type: 'SET_TEMPLATES', payload: Object.values(templatesData) });
+      setTemplates(Object.values(templatesData));
     } catch (error) {
       console.error('Failed to load templates:', error);
-      dispatch({ type: 'SET_TEMPLATES', payload: [] });
+      setTemplates([]);
     }
   };
 
@@ -31,7 +39,7 @@ const TemplateManagerContent: React.FC = () => {
     try {
       const { managerContext } = await chrome.storage.session.get('managerContext');
       if (managerContext?.action === 'new-template' && managerContext.selectedText) {
-        dispatch({ type: 'CREATE_FROM_CONTEXT', payload: managerContext.selectedText });
+        createFromContext(managerContext.selectedText);
         chrome.storage.session.remove('managerContext');
       }
     } catch (error) {
@@ -49,16 +57,16 @@ const TemplateManagerContent: React.FC = () => {
       };
 
       await storage.saveTemplate(templateToSave);
-      dispatch({ type: 'SAVE_TEMPLATE_SUCCESS', payload: templateToSave });
+      saveTemplateSuccess(templateToSave);
     } catch (error) {
       console.error('Failed to save template:', error);
     }
-  }, [state.selectedTemplate, state.isDirty, dispatch]);
+  }, [state.selectedTemplate, state.isDirty, saveTemplateSuccess]);
 
   const handleTemplateDelete = async (templateId: string) => {
     try {
       await storage.deleteTemplate(templateId);
-      dispatch({ type: 'DELETE_TEMPLATE', payload: templateId });
+      deleteTemplate(templateId);
     } catch (error) {
       console.error('Failed to delete template:', error);
     }

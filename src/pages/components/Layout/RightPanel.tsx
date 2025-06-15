@@ -12,23 +12,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings2, StickyNote, Eye, X, Code } from 'lucide-react';
 import { interpolateTiptapContent } from '@/lib/interpolation';
 import { useTemplateManager } from '@/contexts/TemplateManagerContext';
-
-const EmptyState: React.FC = () => (
-  <aside className="w-96 p-4 border-l bg-background hidden xl:flex flex-col">
-    <div className="flex-1 flex items-center justify-center">
-      <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 border-dashed border-border rounded-lg">
-        <Settings2 className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold">No Template Selected</h3>
-        <p className="text-sm text-muted-foreground">
-          Select a template from the list to see its properties.
-        </p>
-      </div>
-    </div>
-  </aside>
-);
+import { useTemplateActions } from '@/hooks/useTemplateActions';
+import { EmptyState } from '@/components/common/EmptyState';
 
 export const RightPanel: React.FC = () => {
-  const { state, dispatch } = useTemplateManager();
+  const { state } = useTemplateManager();
+  const { updateSelectedTemplate } = useTemplateActions();
   const { selectedTemplate: template } = state;
   const [previewVariables, setPreviewVariables] = useState<Record<string, string>>({});
 
@@ -37,11 +26,20 @@ export const RightPanel: React.FC = () => {
   }, [template?.id]);
 
   if (!template) {
-    return <EmptyState />;
+    return (
+      <aside className="w-96 p-4 border-l bg-background hidden xl:flex flex-col">
+        <EmptyState
+          icon={Settings2}
+          title="No Template Selected"
+          description="Select a template from the list to see its properties."
+          className="m-0"
+        />
+      </aside>
+    );
   }
 
   const handleUpdate = (updates: Partial<Template>) => {
-    dispatch({ type: 'UPDATE_SELECTED_TEMPLATE', payload: updates });
+    updateSelectedTemplate(updates);
   };
 
   const handleNewTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

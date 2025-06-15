@@ -3,24 +3,13 @@ import { Template } from '../../../types/template';
 import { Button } from '@/components/ui/button';
 import { Trash2, FileText, Star, Loader2, Folder } from 'lucide-react';
 import { useTemplateManager } from '@/contexts/TemplateManagerContext';
+import { useTemplateActions } from '@/hooks/useTemplateActions';
+import { EmptyState } from '@/components/common/EmptyState';
 
 interface SidebarProps {
   templates: Template[];
   onTemplateDelete: (templateId: string) => void;
 }
-
-const EmptyState: React.FC<{ onCreate: () => void }> = ({ onCreate }) => (
-  <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-card-depth-1 border-dashed border-border rounded-lg m-4">
-    <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-    <h3 className="text-lg font-semibold">No Templates Yet</h3>
-    <p className="text-sm text-muted-foreground mb-4 max-w-xs">
-      Create your first template to get started.
-    </p>
-    <Button onClick={onCreate} variant="default">
-      Create Template
-    </Button>
-  </div>
-);
 
 const LoadingState: React.FC = () => (
   <div className="flex-1 flex items-center justify-center">
@@ -32,15 +21,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   templates,
   onTemplateDelete,
 }) => {
-  const { state, dispatch } = useTemplateManager();
+  const { state } = useTemplateManager();
+  const { selectTemplate, createNewTemplate } = useTemplateActions();
   const { selectedTemplate, isLoading } = state;
 
   const handleTemplateSelect = (template: Template) => {
-    dispatch({ type: 'SELECT_TEMPLATE', payload: { template } });
+    selectTemplate(template);
   };
   
   const handleTemplateCreate = () => {
-    dispatch({ type: 'CREATE_NEW_TEMPLATE' });
+    createNewTemplate();
   };
 
   const templatesByCategory = templates.reduce((acc, template) => {
@@ -62,7 +52,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {isLoading ? (
         <LoadingState />
       ) : templates.length === 0 ? (
-        <EmptyState onCreate={handleTemplateCreate} />
+        <EmptyState
+          icon={FileText}
+          title="No Templates Yet"
+          description="Create your first template to get started."
+          className="bg-card-depth-1"
+        >
+          <Button onClick={handleTemplateCreate} variant="default">
+            Create Template
+          </Button>
+        </EmptyState>
       ) : (
         <div className="flex-1 overflow-y-auto -mr-2 pr-2 space-y-4">
           {categories.map(category => (
