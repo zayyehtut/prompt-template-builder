@@ -25,7 +25,7 @@ const AppLogo = () => (
 );
 
 const Popup: React.FC = () => {
-  const { theme } = useTheme();
+  const { theme } = useTheme(document);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTemplate, setActiveTemplate] = useState<Template | null>(null);
   const [variableValues, setVariableValues] = useState<Record<string, any>>({});

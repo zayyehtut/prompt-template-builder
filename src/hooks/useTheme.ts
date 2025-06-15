@@ -1,12 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { storage } from '../lib/storage';
 
 export type Theme = 'light' | 'dark' | 'pixel-light' | 'pixel-dark';
 
 const themes: Theme[] = ['light', 'dark', 'pixel-light', 'pixel-dark'];
 
-export const useTheme = () => {
+export const useTheme = (targetDocument: Document = document) => {
   const [theme, setTheme] = useState<Theme | null>(null);
+
+  const changeTheme = useCallback((newTheme: Theme) => {
+    setTheme(newTheme);
+    storage.setTheme(newTheme);
+    targetDocument.documentElement.dataset.theme = newTheme;
+    // For tailwind's 'dark:' variant to work
+    if (newTheme.includes('dark')) {
+      targetDocument.documentElement.classList.add('dark');
+    } else {
+      targetDocument.documentElement.classList.remove('dark');
+    }
+  }, [targetDocument]);
 
   useEffect(() => {
     const loadTheme = async () => {
@@ -14,26 +26,14 @@ export const useTheme = () => {
       changeTheme(storedTheme);
     };
     loadTheme();
-  }, []);
+  }, [changeTheme]);
 
-  const changeTheme = (newTheme: Theme) => {
-    setTheme(newTheme);
-    storage.setTheme(newTheme);
-    document.documentElement.dataset.theme = newTheme;
-    // For tailwind's 'dark:' variant to work
-    if (newTheme.includes('dark')) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
-  
-  const toggleTheme = () => {
-    if (!theme) return; // Don't do anything if theme is not yet loaded
+  const toggleTheme = useCallback(() => {
+    if (!theme) return;
     const currentIndex = themes.indexOf(theme);
     const nextIndex = (currentIndex + 1) % themes.length;
     changeTheme(themes[nextIndex]);
-  };
+  }, [theme, changeTheme]);
 
   return { theme, changeTheme, toggleTheme };
 }; 
