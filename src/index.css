@@ -7,30 +7,32 @@
 @layer base {
   :root,
   .light {
-    --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
-    --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
+    /* New "Low-Contrast Light" Theme */
+    --background: 240 5% 96%;      /* Light Gray */
+    --foreground: 240 5% 10%;     /* Near-black text */
+    --card: 0 0% 100%;          /* White cards */
+    --card-foreground: 240 5% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 95%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 47.8%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 85.7% 75.9%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 215 20.2% 65.1%;
+    --popover-foreground: 240 5% 10%;
+    --primary: 262 80% 56%;       /* Vibrant purple/violet for accents */
+    --primary-foreground: 240 5% 98%;
+    --secondary: 240 5% 93%;      /* Lighter secondary elements */
+    --secondary-foreground: 240 5% 25%;
+    --muted: 240 5% 93%;
+    --muted-foreground: 240 4% 45%;
+    --accent: 240 5% 90%;
+    --accent-foreground: 240 5% 10%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 240 5% 98%;
+    --border: 240 5% 88%;        /* Subtle borders */
+    --input: 240 5% 88%;
+    --ring: 262 80% 56%;         /* Ring matches primary accent */
     --radius: 0.3rem;
   }
  
   .dark {
-    --background: 240 5% 5%;
+    /* "Low-Light Pixel" Theme */
+    --background: 240 5% 5%;      /* Near-black */
     --foreground: 240 5% 65%;
     --card: 240 4% 9%;
     --card-foreground: 240 5% 80%;
