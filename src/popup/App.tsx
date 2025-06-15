@@ -40,17 +40,6 @@ const Popup: React.FC = () => {
   const loadTemplates = async () => {
     setIsLoading(true);
     const templatesData = await storage.getTemplates();
-    const favorites = Object.values(templatesData).filter(t => t.favorite);
-    const nonFavorites = Object.values(templatesData).filter(t => !t.favorite);
-    // Add a 'favorites' category for UI grouping
-    const favCategory = favorites.length > 0 ? { 'Favorites': favorites } : {};
-    const otherTemplates = nonFavorites.reduce((acc, t) => {
-      const category = t.category || 'Uncategorized';
-      if (!acc[category]) acc[category] = [];
-      acc[category].push(t);
-      return acc;
-    }, {} as Record<string, Template[]>);
-    
     setTemplates(Object.values(templatesData));
     setIsLoading(false);
   };
