@@ -12,7 +12,7 @@ import { nanoid } from 'nanoid';
 import '../index.css';
 
 const AppLogo = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-primary">
     <path d="M4 4H8V8H4V4Z" fill="currentColor"/>
     <path d="M4 10H8V14H4V10Z" fill="currentColor" fillOpacity="0.6"/>
     <path d="M4 16H8V20H4V16Z" fill="currentColor" fillOpacity="0.3"/>
@@ -42,7 +42,16 @@ const Popup: React.FC = () => {
     const templatesData = await storage.getTemplates();
     const favorites = Object.values(templatesData).filter(t => t.favorite);
     const nonFavorites = Object.values(templatesData).filter(t => !t.favorite);
-    setTemplates([...favorites, ...nonFavorites]);
+    // Add a 'favorites' category for UI grouping
+    const favCategory = favorites.length > 0 ? { 'Favorites': favorites } : {};
+    const otherTemplates = nonFavorites.reduce((acc, t) => {
+      const category = t.category || 'Uncategorized';
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(t);
+      return acc;
+    }, {} as Record<string, Template[]>);
+    
+    setTemplates(Object.values(templatesData));
     setIsLoading(false);
   };
   
@@ -50,7 +59,8 @@ const Popup: React.FC = () => {
     if (!activeTemplate || isCopied) return;
 
     try {
-      const output = interpolateTemplate(activeTemplate.content, variableValues);
+      const outputText = new DOMParser().parseFromString(activeTemplate.content, "text/html").documentElement.textContent || "";
+      const output = interpolateTemplate(outputText, variableValues);
       await navigator.clipboard.writeText(output);
       setIsCopied(true);
       
@@ -92,13 +102,17 @@ const Popup: React.FC = () => {
   };
 
   const templatesByCategory = templates.reduce((acc, template) => {
-    const category = template.category || 'Uncategorized';
+    const category = template.favorite ? 'Favorites' : (template.category || 'General');
     if (!acc[category]) acc[category] = [];
     acc[category].push(template);
     return acc;
   }, {} as Record<string, Template[]>);
 
-  const categories = Object.keys(templatesByCategory).sort();
+  const categories = Object.keys(templatesByCategory).sort((a,b) => {
+    if (a === 'Favorites') return -1;
+    if (b === 'Favorites') return 1;
+    return a.localeCompare(b);
+  });
 
   const renderContent = () => {
     if (isLoading) {
@@ -110,22 +124,20 @@ const Popup: React.FC = () => {
     }
 
     if (activeTemplate) {
+      const previewText = new DOMParser().parseFromString(activeTemplate.content, "text/html").documentElement.textContent || "";
       return (
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 flex-1 flex flex-col">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setActiveTemplate(null)}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => setActiveTemplate(null)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h3 className="text-lg font-semibold truncate">{activeTemplate.name}</h3>
+            <h3 className="text-base font-semibold truncate">{activeTemplate.name}</h3>
           </div>
           
-          <div className="space-y-3 max-h-[400px] overflow-y-auto -mr-2 pr-2">
-            <p 
-              className="text-sm text-muted-foreground prose dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: activeTemplate.content }}
-            />
+          <div className="space-y-3 flex-1 overflow-y-auto -mr-2 pr-2">
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{previewText}</p>
 
-            {activeTemplate.variables.length > 0 && <Separator />}
+            {activeTemplate.variables.length > 0 && <Separator className="my-3"/>}
 
             {activeTemplate.variables.map(variable => (
               <div key={variable.name} className="space-y-2">
@@ -139,7 +151,7 @@ const Popup: React.FC = () => {
               </div>
             ))}
           </div>
-          <Button onClick={handleExecute} disabled={isCopied} className="w-full">
+          <Button onClick={handleExecute} disabled={isCopied} className="w-full mt-4 flex-shrink-0">
             {isCopied ? 'Copied!' : 'Copy to Clipboard'}
           </Button>
         </div>
@@ -153,20 +165,17 @@ const Popup: React.FC = () => {
             {categories.map(category => (
               <div key={category}>
                 <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground px-2 mb-2 uppercase tracking-wider">
-                  <Folder className="w-4 h-4" />
+                  {category === 'Favorites' ? <Star className="w-4 h-4 text-yellow-400" /> : <Folder className="w-4 h-4" />}
                   {category}
                 </h3>
                 <div className="space-y-1">
                   {templatesByCategory[category].map(template => (
                     <div
                       key={template.id}
-                      className="group flex items-center justify-between pl-3 pr-2 py-2 rounded-md cursor-pointer border-l-2 border-transparent hover:bg-secondary/50 hover:border-accent transition-all duration-150"
+                      className="group flex items-center justify-between pl-3 pr-2 py-2 rounded-md cursor-pointer border-l-2 border-transparent text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
                       onClick={() => selectTemplate(template)}
                     >
-                      <div className="flex-1 flex items-center gap-2 overflow-hidden">
-                        {template.favorite && <Star className="h-4 w-4 text-yellow-400 flex-shrink-0" />}
-                        <span className="font-medium truncate flex-1">{template.name}</span>
-                      </div>
+                      <span className="font-medium truncate flex-1">{template.name}</span>
                     </div>
                   ))}
                 </div>
@@ -194,7 +203,7 @@ const Popup: React.FC = () => {
       <header className="p-2 border-b flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3 px-2">
           <AppLogo />
-          <h1 className="text-base font-bold tracking-wider uppercase">Prompts</h1>
+          <h1 className="text-base font-bold tracking-wider uppercase">Promptly</h1>
         </div>
         <div className="flex items-center">
           <Button variant="ghost" size="icon" onClick={() => storage.openManager({ action: 'new-template' })} aria-label="New Template">

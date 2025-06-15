@@ -73,8 +73,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     key={template.id}
                     className={`group flex items-center justify-between pl-3 pr-2 py-2 rounded-md cursor-pointer border-l-2 transition-all duration-150 ${
                       selectedTemplate?.id === template.id
-                        ? 'bg-primary/10 border-primary text-primary-foreground'
-                        : 'border-transparent hover:bg-secondary/50 hover:border-accent'
+                        ? 'bg-primary/20 border-primary text-primary-foreground font-semibold'
+                        : 'border-transparent text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
                     }`}
                     onClick={() => onTemplateSelect(template)}
                   >
