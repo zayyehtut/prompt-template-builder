@@ -6,7 +6,7 @@ import { Template } from '@/types/template';
 import { storage } from '@/lib/storage';
 import { convertTiptapContentToText, interpolateTiptapContent } from '@/lib/interpolation';
 import { useTheme } from '@/hooks/useTheme';
-import { Settings, Plus, FileText, Loader2, ArrowLeft, Star, Folder, Eye } from 'lucide-react';
+import { Settings, Plus, FileText, Loader2, ArrowLeft, Eye } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import '../index.css';
 import { TemplateList } from '@/components/common/TemplateList';

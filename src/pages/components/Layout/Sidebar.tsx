@@ -1,7 +1,7 @@
 import React from 'react';
 import { Template } from '../../../types/template';
 import { Button } from '@/components/ui/button';
-import { Trash2, FileText, Star, Loader2, Folder } from 'lucide-react';
+import { FileText, Loader2 } from 'lucide-react';
 import { useTemplateManager } from '@/contexts/TemplateManagerContext';
 import { useTemplateActions } from '@/hooks/useTemplateActions';
 import { EmptyState } from '@/components/common/EmptyState';
