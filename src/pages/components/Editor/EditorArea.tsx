@@ -11,6 +11,7 @@ interface EditorAreaProps {
   onNameChange: (name: string) => void;
   onContentChange: (content: string) => void;
   onVariablesExtract: (variables: string[]) => void;
+  onSave: () => void;
 }
 
 const EditorArea = ({
@@ -18,13 +19,17 @@ const EditorArea = ({
   onNameChange,
   onContentChange,
   onVariablesExtract,
+  onSave,
 }: EditorAreaProps) => {
   const editor = useEditor({
-    extensions: [StarterKit, VariableNode],
+    extensions: [
+      StarterKit, 
+      VariableNode
+    ],
     content: '',
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert focus:outline-none max-w-full',
+        class: 'prose dark:prose-invert focus:outline-none max-w-full min-h-[calc(100vh-20rem)]',
       },
     },
     onUpdate: ({ editor }) => {
@@ -33,6 +38,20 @@ const EditorArea = ({
       extractVariablesFromContent();
     },
   });
+  
+  // Save on Ctrl+S / Cmd+S
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        onSave();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onSave]);
 
   const extractVariablesFromContent = () => {
     if (!editor) return;
@@ -40,10 +59,10 @@ const EditorArea = ({
     const variables: string[] = [];
     editor.state.doc.descendants((node) => {
       if (node.type.name === 'variable') {
-        variables.push(node.attrs.name);
+        variables.push(node.attrs.id);
       }
     });
-
+    
     onVariablesExtract([...new Set(variables)]);
   };
 
@@ -53,45 +72,45 @@ const EditorArea = ({
         // Pre-process the content to convert {{...}} into the format our VariableNode understands.
         const processedContent = template.content.replace(
           /\{\{([a-zA-Z0-9_]+)\}\}/g,
-          '<span data-name="$1"></span>'
+          '<span data-type="variable-node" data-id="$1">{{$1}}</span>'
         );
         
         if (editor.getHTML() !== processedContent) {
-          editor.commands.setContent(processedContent, false); // Don't trigger onUpdate
+          editor.commands.setContent(processedContent, false);
           extractVariablesFromContent();
         }
       } else {
         editor.commands.clearContent(false);
       }
     }
-  }, [template, editor]);
-  
+  }, [template?.id, editor]); // Depend on template.id to re-trigger on template switch
+
   if (!template) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-secondary/30 text-center">
+      <div className="flex-1 flex items-center justify-center bg-card text-center p-8">
         <div>
-          <p className="text-lg font-semibold">Select a template</p>
-          <p className="text-muted-foreground">or create a new one to start editing.</p>
+          <h3 className="text-xl font-semibold text-foreground">Select a template</h3>
+          <p className="text-muted-foreground mt-2">or create a new one to start editing.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <main className="flex-1 flex flex-col p-4 bg-secondary/30">
-      <div className="flex items-center justify-between pb-4 border-b">
+    <div className="flex-1 flex flex-col bg-card">
+      <div className="flex items-center p-4 border-b border-border">
         <Input
           value={template.name}
           onChange={e => onNameChange(e.target.value)}
-          placeholder="Enter template name..."
-          className="text-2xl font-bold border-none focus-visible:ring-0 focus-visible:ring-offset-0 !shadow-none p-0 h-auto"
+          placeholder="Untitled Template"
+          className="text-xl font-semibold border-none focus-visible:ring-0 focus-visible:ring-offset-0 !shadow-none p-0 h-auto bg-transparent"
         />
       </div>
       {editor && <Toolbar editor={editor} />}
-      <div className="flex-1 overflow-y-auto mt-4 p-4 rounded-md bg-background">
+      <div className="flex-1 overflow-y-auto p-6">
         <EditorContent editor={editor} />
       </div>
-    </main>
+    </div>
   );
 };
 

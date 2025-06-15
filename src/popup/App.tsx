@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -8,9 +7,23 @@ import { Template } from '@/types/template';
 import { storage } from '@/lib/storage';
 import { interpolateTemplate } from '@/lib/interpolation';
 import { useTheme } from '@/hooks/useTheme';
-import { Settings, Plus, FileText, Copy, Loader2 } from 'lucide-react';
+import { Settings, Plus, FileText, Loader2, ArrowLeft, Star, Folder } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import '../index.css';
+
+const AppLogo = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 4H8V8H4V4Z" fill="currentColor"/>
+    <path d="M4 10H8V14H4V10Z" fill="currentColor" fillOpacity="0.6"/>
+    <path d="M4 16H8V20H4V16Z" fill="currentColor" fillOpacity="0.3"/>
+    <path d="M10 4H14V8H10V4Z" fill="currentColor" fillOpacity="0.6"/>
+    <path d="M10 10H14V14H10V10Z" fill="currentColor"/>
+    <path d="M10 16H14V20H10V16Z" fill="currentColor" fillOpacity="0.6"/>
+    <path d="M16 4H20V8H16V4Z" fill="currentColor" fillOpacity="0.3"/>
+    <path d="M16 10H20V14H16V10Z" fill="currentColor" fillOpacity="0.6"/>
+    <path d="M16 16H20V20H16V16Z" fill="currentColor"/>
+  </svg>
+);
 
 const Popup: React.FC = () => {
   const { theme } = useTheme();
@@ -18,7 +31,7 @@ const Popup: React.FC = () => {
   const [activeTemplate, setActiveTemplate] = useState<Template | null>(null);
   const [variableValues, setVariableValues] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [isExecuting, setIsExecuting] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     loadTemplates();
@@ -27,20 +40,19 @@ const Popup: React.FC = () => {
   const loadTemplates = async () => {
     setIsLoading(true);
     const templatesData = await storage.getTemplates();
-    const sortedTemplates = Object.values(templatesData).sort(
-      (a, b) => b.usageCount - a.usageCount
-    );
-    setTemplates(sortedTemplates);
+    const favorites = Object.values(templatesData).filter(t => t.favorite);
+    const nonFavorites = Object.values(templatesData).filter(t => !t.favorite);
+    setTemplates([...favorites, ...nonFavorites]);
     setIsLoading(false);
   };
   
   const handleExecute = async () => {
-    if (!activeTemplate) return;
+    if (!activeTemplate || isCopied) return;
 
-    setIsExecuting(true);
     try {
       const output = interpolateTemplate(activeTemplate.content, variableValues);
       await navigator.clipboard.writeText(output);
+      setIsCopied(true);
       
       const updatedTemplate = { 
         ...activeTemplate, 
@@ -57,16 +69,11 @@ const Popup: React.FC = () => {
         output,
         executedAt: Date.now(),
       });
-
-      // Show feedback
-      setTimeout(() => {
-        setIsExecuting(false);
-        window.close();
-      }, 500);
+      
+      setTimeout(() => window.close(), 700);
 
     } catch (error) {
       console.error('Failed to execute template:', error);
-      setIsExecuting(false);
     }
   };
 
@@ -84,11 +91,20 @@ const Popup: React.FC = () => {
     );
   };
 
+  const templatesByCategory = templates.reduce((acc, template) => {
+    const category = template.category || 'Uncategorized';
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(template);
+    return acc;
+  }, {} as Record<string, Template[]>);
+
+  const categories = Object.keys(templatesByCategory).sort();
+
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="flex-1 flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       );
     }
@@ -96,66 +112,77 @@ const Popup: React.FC = () => {
     if (activeTemplate) {
       return (
         <div className="p-4 space-y-4">
-          <h3 className="text-lg font-semibold">{activeTemplate.name}</h3>
-          
-          <div className="space-y-2">
-            <Label>Template Preview</Label>
-            <Card>
-              <CardContent 
-                className="p-3 text-sm prose dark:prose-invert max-w-none max-h-40 overflow-y-auto"
-                dangerouslySetInnerHTML={{ __html: activeTemplate.content }}
-              />
-            </Card>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setActiveTemplate(null)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h3 className="text-lg font-semibold truncate">{activeTemplate.name}</h3>
           </div>
+          
+          <div className="space-y-3 max-h-[400px] overflow-y-auto -mr-2 pr-2">
+            <p 
+              className="text-sm text-muted-foreground prose dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: activeTemplate.content }}
+            />
 
-          <Separator />
+            {activeTemplate.variables.length > 0 && <Separator />}
 
-          {activeTemplate.variables.map(variable => (
-            <div key={variable.name} className="space-y-2">
-              <Label htmlFor={variable.name}>{variable.name}</Label>
-              <Input
-                id={variable.name}
-                value={variableValues[variable.name] || ''}
-                onChange={e => handleVariableChange(variable.name, e.target.value)}
-                placeholder={variable.placeholder || ''}
-              />
-            </div>
-          ))}
-          <Button onClick={handleExecute} disabled={isExecuting} className="w-full">
-            {isExecuting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2" />}
-            Copy to Clipboard
-          </Button>
-          <Button variant="link" onClick={() => setActiveTemplate(null)} className="w-full">
-            Back to templates
+            {activeTemplate.variables.map(variable => (
+              <div key={variable.name} className="space-y-2">
+                <Label htmlFor={variable.name}>{variable.name}</Label>
+                <Input
+                  id={variable.name}
+                  value={variableValues[variable.name] || ''}
+                  onChange={e => handleVariableChange(variable.name, e.target.value)}
+                  placeholder={`Enter value for ${variable.name}...`}
+                />
+              </div>
+            ))}
+          </div>
+          <Button onClick={handleExecute} disabled={isCopied} className="w-full">
+            {isCopied ? 'Copied!' : 'Copy to Clipboard'}
           </Button>
         </div>
       );
     }
 
     return (
-      <div className="p-4 space-y-2">
+      <div className="p-4 flex-1 overflow-y-auto">
         {templates.length > 0 ? (
-          templates.map(template => (
-            <Card
-              key={template.id}
-              className="hover:bg-accent/50 cursor-pointer"
-              onClick={() => selectTemplate(template)}
-            >
-              <CardContent className="p-3">
-                <p className="font-semibold">{template.name}</p>
-                <p className="text-sm text-muted-foreground truncate">
-                  {template.description || 'No description'}
-                </p>
-              </CardContent>
-            </Card>
-          ))
+          <div className="space-y-4">
+            {categories.map(category => (
+              <div key={category}>
+                <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground px-2 mb-2 uppercase tracking-wider">
+                  <Folder className="w-4 h-4" />
+                  {category}
+                </h3>
+                <div className="space-y-1">
+                  {templatesByCategory[category].map(template => (
+                    <div
+                      key={template.id}
+                      className="group flex items-center justify-between pl-3 pr-2 py-2 rounded-md cursor-pointer border-l-2 border-transparent hover:bg-secondary/50 hover:border-accent transition-all duration-150"
+                      onClick={() => selectTemplate(template)}
+                    >
+                      <div className="flex-1 flex items-center gap-2 overflow-hidden">
+                        {template.favorite && <Star className="h-4 w-4 text-yellow-400 flex-shrink-0" />}
+                        <span className="font-medium truncate flex-1">{template.name}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
-          <div className="text-center py-10">
+          <div className="text-center py-10 flex flex-col items-center justify-center h-full">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
             <h3 className="mt-2 text-lg font-semibold">No Templates</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Create your first template in the manager.
+              Create one in the manager.
             </p>
+            <Button size="sm" className="mt-4" onClick={() => storage.openManager()}>
+              Open Manager
+            </Button>
           </div>
         )}
       </div>
@@ -164,9 +191,12 @@ const Popup: React.FC = () => {
 
   return (
     <div className={`w-[400px] h-fit max-h-[600px] bg-background text-foreground flex flex-col ${theme}`}>
-      <header className="p-2 border-b flex items-center justify-between">
-        <h1 className="text-lg font-bold px-2">Prompts</h1>
-        <div className="flex items-center gap-1">
+      <header className="p-2 border-b flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-3 px-2">
+          <AppLogo />
+          <h1 className="text-base font-bold tracking-wider uppercase">Prompts</h1>
+        </div>
+        <div className="flex items-center">
           <Button variant="ghost" size="icon" onClick={() => storage.openManager({ action: 'new-template' })} aria-label="New Template">
             <Plus className="h-5 w-5" />
           </Button>
@@ -176,15 +206,9 @@ const Popup: React.FC = () => {
         </div>
       </header>
       
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 flex flex-col overflow-y-auto">
         {renderContent()}
       </main>
-
-      <footer className="p-2 border-t text-center">
-        <Button variant="link" size="sm" onClick={() => storage.openManager()}>
-          Go to Template Manager
-        </Button>
-      </footer>
     </div>
   );
 };

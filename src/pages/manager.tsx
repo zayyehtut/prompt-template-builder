@@ -237,14 +237,17 @@ export const TemplateManager: React.FC = () => {
           isLoading={state.isLoading}
         />
         
-        <main className="flex-1 flex flex-col">
-          <EditorArea
-            key={state.selectedTemplate?.id}
-            template={state.selectedTemplate}
-            onContentChange={handleContentChange}
-            onNameChange={handleNameChange}
-            onVariablesExtract={handleVariablesExtract}
-          />
+        <main className="flex-1 flex flex-col p-4">
+          <div className="flex-1 flex flex-col w-full h-full border rounded-lg overflow-hidden">
+            <EditorArea
+              key={state.selectedTemplate?.id}
+              template={state.selectedTemplate}
+              onContentChange={handleContentChange}
+              onNameChange={handleNameChange}
+              onVariablesExtract={handleVariablesExtract}
+              onSave={handleTemplateSave}
+            />
+          </div>
         </main>
         
         <RightPanel 

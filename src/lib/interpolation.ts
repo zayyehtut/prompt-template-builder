@@ -250,8 +250,8 @@ function formatValue(value: unknown, typeHint?: string): string {
     return '[Object]'; // Default object formatting
   }
   
-  // Default: convert to string
-  return String(value);
+  // Default for strings and other types
+  return value.toString();
 }
 
 /**
@@ -415,4 +415,28 @@ export function validateVariables(
     missing,
     errors,
   };
+}
+
+/**
+ * Specifically interpolates content from the Tiptap editor, which uses
+ * <span data-type="variable-node"> for variables.
+ */
+export function interpolateTiptapContent(
+  htmlContent: string,
+  variables: Record<string, string>
+): string {
+  if (!htmlContent) return '';
+
+  return htmlContent.replace(
+    /<span data-type="variable-node" data-id="([^"]+)">[^<]*<\/span>/g,
+    (_match, variableName) => {
+      // If a test value exists for this variable, use it.
+      if (variables[variableName] !== undefined) {
+        // Return the plain text value, not wrapped in any tags.
+        return variables[variableName];
+      }
+      // Otherwise, return the original placeholder format for clarity in the preview.
+      return `{{${variableName}}}`;
+    }
+  );
 } 
