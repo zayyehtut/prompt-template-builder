@@ -437,7 +437,7 @@ export function interpolateTiptapContent(
   // It captures the variable name from the `data-name` attribute.
   return htmlContent.replace(
     /<span data-name="([a-zA-Z0-9_]+)">[^<]*<\/span>/g,
-    (match, variableName) => {
+    (_match, variableName) => {
       // If a value exists for this variable, use it.
       // We must escape HTML entities to prevent XSS.
       if (variables[variableName] !== undefined) {
