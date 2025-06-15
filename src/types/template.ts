@@ -51,4 +51,9 @@ export interface ExecutionRecord {
   output: string;
   executedAt: number;
   context?: TemplateExecutionContext;
+}
+
+export interface ManagerContext {
+  action: 'new-template';
+  selectedText?: string;
 } 

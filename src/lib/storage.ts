@@ -1,4 +1,4 @@
-import { Template } from '../types/template';
+import { Template, ManagerContext } from '../types/template';
 
 interface UserSettings {
   theme: 'light' | 'dark' | 'system';
@@ -241,6 +241,37 @@ export class ExtensionStorage {
       }
     } catch (error) {
       console.error('Failed to open template manager:', error);
+    }
+  }
+
+  // === Settings Management ===
+  async getTheme(): Promise<'light' | 'dark'> {
+    try {
+      const { settings } = await chrome.storage.sync.get('settings');
+      return settings?.theme || 'dark';
+    } catch (error) {
+      console.error('Failed to get theme:', error);
+      return 'dark';
+    }
+  }
+
+  async setTheme(theme: 'light' | 'dark'): Promise<void> {
+    try {
+      const { settings = {} } = await chrome.storage.sync.get('settings');
+      await chrome.storage.sync.set({
+        settings: { ...settings, theme }
+      });
+    } catch (error) {
+      console.error('Failed to set theme:', error);
+    }
+  }
+
+  // === Context Management ===
+  async setManagerContext(context: ManagerContext): Promise<void> {
+    try {
+      await chrome.storage.session.set({ managerContext: context });
+    } catch (error) {
+      console.error('Failed to set manager context:', error);
     }
   }
 }

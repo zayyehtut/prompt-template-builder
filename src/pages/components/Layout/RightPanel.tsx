@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Template } from '../../../types/template';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Settings2, StickyNote, Eye, X } from 'lucide-react';
 
 interface RightPanelProps {
   template: Template | null;
@@ -10,227 +20,169 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   template,
   onTemplateUpdate,
 }) => {
-  const [activeTab, setActiveTab] = useState<'properties' | 'variables' | 'preview'>('properties');
-
   if (!template) {
     return (
-      <div className="right-panel">
-        <div className="right-panel-header">
-          <h3>Properties</h3>
+      <aside className="w-96 p-4 border-l bg-background hidden xl:flex flex-col">
+        <div className="flex-1 flex items-center justify-center">
+          <Card className="w-full h-full flex flex-col items-center justify-center text-center p-6 border-dashed">
+            <Settings2 className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold">No Template Selected</h3>
+            <p className="text-sm text-muted-foreground">
+              Select a template to view its properties.
+            </p>
+          </Card>
         </div>
-        <div className="right-panel-content">
-          <div className="empty-state">
-            <div className="empty-state-icon">⚙️</div>
-            <div className="empty-state-title">No Template Selected</div>
-            <div className="empty-state-description">
-              Select a template to view its properties
-            </div>
-          </div>
-        </div>
-      </div>
+      </aside>
     );
   }
 
-  const handleDescriptionChange = (description: string) => {
-    const updatedTemplate = { ...template, description, updatedAt: Date.now() };
-    onTemplateUpdate(updatedTemplate);
+  const handleUpdate = (updates: Partial<Template>) => {
+    onTemplateUpdate({ ...template, ...updates, updatedAt: Date.now() });
   };
 
-  const handleCategoryChange = (category: string) => {
-    const updatedTemplate = { ...template, category, updatedAt: Date.now() };
-    onTemplateUpdate(updatedTemplate);
-  };
-
-  const handleTagsChange = (tags: string[]) => {
-    const updatedTemplate = { ...template, tags, updatedAt: Date.now() };
-    onTemplateUpdate(updatedTemplate);
-  };
-
-  const handleFavoriteToggle = () => {
-    const updatedTemplate = { ...template, favorite: !template.favorite, updatedAt: Date.now() };
-    onTemplateUpdate(updatedTemplate);
-  };
-
-  const addTag = (tagName: string) => {
-    if (tagName.trim() && !template.tags.includes(tagName.trim())) {
-      handleTagsChange([...template.tags, tagName.trim()]);
+  const handleNewTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const newTag = e.currentTarget.value.trim();
+      if (newTag && !template.tags?.includes(newTag)) {
+        handleUpdate({ tags: [...(template.tags || []), newTag] });
+      }
+      e.currentTarget.value = '';
     }
   };
 
-  const removeTag = (tagToRemove: string) => {
-    handleTagsChange(template.tags.filter(tag => tag !== tagToRemove));
-  };
-
   return (
-    <div className="right-panel">
-      <div className="right-panel-header">
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            className={`btn btn-sm ${activeTab === 'properties' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setActiveTab('properties')}
-          >
-            Properties
-          </button>
-          <button
-            className={`btn btn-sm ${activeTab === 'variables' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setActiveTab('variables')}
-          >
-            Variables
-          </button>
-          <button
-            className={`btn btn-sm ${activeTab === 'preview' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setActiveTab('preview')}
-          >
-            Preview
-          </button>
-        </div>
-      </div>
-      
-      <div className="right-panel-content">
-        {activeTab === 'properties' && (
-          <div>
-            <div className="property-section">
-              <div className="property-section-title">Basic Info</div>
-              
-              <div className="property-field">
-                <label className="property-label">Description</label>
-                <textarea
-                  className="property-input property-textarea"
-                  value={template.description || ''}
-                  onChange={(e) => handleDescriptionChange(e.target.value)}
-                  placeholder="Describe what this template is for..."
-                />
-              </div>
-              
-              <div className="property-field">
-                <label className="property-label">Category</label>
-                <input
-                  type="text"
-                  className="property-input"
-                  value={template.category}
-                  onChange={(e) => handleCategoryChange(e.target.value)}
-                  placeholder="e.g., email, social, documentation"
-                />
-              </div>
-              
-              <div className="property-field">
-                <label className="property-label">Favorite</label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={template.favorite}
-                    onChange={handleFavoriteToggle}
+    <aside className="w-96 p-4 border-l bg-background flex-col hidden xl:flex">
+      <h2 className="text-xl font-semibold mb-4">Properties</h2>
+      <Tabs defaultValue="properties" className="flex-1 flex flex-col">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="properties"><StickyNote className="w-4 h-4 mr-2"/>Properties</TabsTrigger>
+          <TabsTrigger value="variables"><Settings2 className="w-4 h-4 mr-2"/>Variables</TabsTrigger>
+          <TabsTrigger value="preview"><Eye className="w-4 h-4 mr-2"/>Preview</TabsTrigger>
+        </TabsList>
+
+        <div className="flex-1 overflow-y-auto mt-4 -mr-2 pr-2">
+          <TabsContent value="properties">
+            <Card>
+              <CardHeader>
+                <CardTitle>Basic Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={template.description || ''}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleUpdate({ description: e.target.value })}
+                    placeholder="Describe what this template is for..."
                   />
-                  <span>Mark as favorite</span>
-                </label>
-              </div>
-            </div>
-            
-            <div className="property-section">
-              <div className="property-section-title">Tags</div>
-              <div className="tags-container">
-                {template.tags.map(tag => (
-                  <div key={tag} className="tag">
-                    {tag}
-                    <button
-                      className="tag-remove"
-                      onClick={() => removeTag(tag)}
-                      title="Remove tag"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <input
-                type="text"
-                className="property-input"
-                placeholder="Add a tag..."
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    addTag(e.currentTarget.value);
-                    e.currentTarget.value = '';
-                  }
-                }}
-              />
-            </div>
-            
-            <div className="property-section">
-              <div className="property-section-title">Statistics</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                <div>Usage count: {template.usageCount}</div>
-                <div>Created: {new Date(template.createdAt).toLocaleDateString()}</div>
-                <div>Updated: {new Date(template.updatedAt).toLocaleDateString()}</div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {activeTab === 'variables' && (
-          <div>
-            <div className="property-section">
-              <div className="property-section-title">
-                Variables ({template.variables.length})
-              </div>
-              {template.variables.length === 0 ? (
-                                 <div style={{ fontSize: '14px', color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>
-                   No variables found.
-                   <br />
-                   Add {`{{VARIABLE_NAME}}`} in your template content.
-                 </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {template.variables.map(variable => (
-                    <div key={variable.name} style={{ 
-                      padding: '12px',
-                      border: '1px solid var(--border-light)',
-                      borderRadius: '6px',
-                      backgroundColor: 'var(--bg-elevated)'
-                    }}>
-                      <div style={{ 
-                        fontWeight: '600',
-                        color: 'var(--text-primary)',
-                        marginBottom: '4px'
-                      }}>
-                        {variable.name}
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                        Type: {variable.type}
-                        {variable.required && ' (required)'}
-                      </div>
-                      {variable.description && (
-                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                          {variable.description}
-                        </div>
-                      )}
-                    </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category</Label>
+                  <Input
+                    id="category"
+                    value={template.category}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdate({ category: e.target.value })}
+                    placeholder="e.g., email, social"
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="favorite"
+                    checked={template.favorite}
+                    onCheckedChange={(checked: boolean) => handleUpdate({ favorite: !!checked })}
+                  />
+                  <Label htmlFor="favorite">Mark as favorite</Label>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Separator className="my-6" />
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Tags</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {template.tags.map(tag => (
+                    <Badge key={tag} variant="secondary">
+                      {tag}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 ml-1"
+                        onClick={() => handleUpdate({ tags: template.tags.filter(t => t !== tag) })}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
                   ))}
                 </div>
-              )}
-            </div>
-          </div>
-        )}
-        
-        {activeTab === 'preview' && (
-          <div>
-            <div className="property-section">
-              <div className="property-section-title">Preview</div>
-              <div style={{
-                padding: '12px',
-                border: '1px solid var(--border-light)',
-                borderRadius: '6px',
-                backgroundColor: 'var(--bg-elevated)',
-                fontSize: '14px',
-                lineHeight: '1.6',
-                whiteSpace: 'pre-wrap',
-                fontFamily: '"Monaco", "Menlo", "Ubuntu Mono", monospace'
-              }}>
-                {template.content || 'No content'}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+                <Input
+                  placeholder="Add a tag..."
+                  onKeyDown={handleNewTagKeyDown}
+                />
+              </CardContent>
+            </Card>
+            
+            <Separator className="my-6" />
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Statistics</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground space-y-2">
+                <p>Usage count: {template.usageCount}</p>
+                <p>Created: {new Date(template.createdAt).toLocaleDateString()}</p>
+                <p>Updated: {new Date(template.updatedAt).toLocaleDateString()}</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="variables">
+             <Card>
+              <CardHeader>
+                <CardTitle>Variables ({template.variables.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {template.variables.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    <p>No variables found.</p>
+                    <p className="text-xs">Add {`{{VARIABLE_NAME}}`} in your template content.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {template.variables.map(variable => (
+                      <Card key={variable.name} className="p-4">
+                        <p className="font-semibold">{variable.name}</p>
+                        <p className="text-sm text-muted-foreground">Type: {variable.type}</p>
+                        {variable.required && <Badge variant="outline">Required</Badge>}
+                        {variable.description && <p className="text-sm mt-2">{variable.description}</p>}
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="preview">
+            <Card>
+              <CardHeader>
+                <CardTitle>Live Preview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="prose dark:prose-invert prose-sm max-w-none p-4 border rounded-md bg-secondary/30 min-h-[100px]">
+                  <pre className="whitespace-pre-wrap font-sans text-sm">
+                    {template.content || "No content to preview."}
+                  </pre>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </div>
+      </Tabs>
+    </aside>
   );
 }; 

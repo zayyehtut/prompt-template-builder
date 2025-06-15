@@ -1,149 +1,85 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Template } from '../../../types/template';
-import { parseTemplate } from '../../../lib/template-parser';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Editor } from './Editor';
+import { Save, Sparkles, FileText } from 'lucide-react';
 
 interface EditorAreaProps {
   template: Template | null;
-  onTemplateSave: (template: Template) => void;
+  onTemplateUpdate: (template: Template) => void;
 }
 
-export const EditorArea: React.FC<EditorAreaProps> = ({
-  template,
-  onTemplateSave,
-}) => {
+const EditorArea = ({ template, onTemplateUpdate }: EditorAreaProps) => {
   const [content, setContent] = useState('');
   const [name, setName] = useState('');
-  const [hasChanges, setHasChanges] = useState(false);
 
-  // Update local state when template changes
   useEffect(() => {
     if (template) {
       setContent(template.content);
       setName(template.name);
-      setHasChanges(false);
     } else {
       setContent('');
       setName('');
-      setHasChanges(false);
     }
   }, [template]);
 
-  const handleContentChange = (newContent: string) => {
-    setContent(newContent);
-    setHasChanges(true);
-  };
-
-  const handleNameChange = (newName: string) => {
-    setName(newName);
-    setHasChanges(true);
-  };
-
-  const handleSave = () => {
-    if (!template) return;
-
-    // Parse the template to extract variables
-    const { variables } = parseTemplate(content);
-
-    const updatedTemplate: Template = {
-      ...template,
-      name: name.trim() || 'Untitled Template',
-      content,
-      variables,
-      updatedAt: Date.now(),
-    };
-
-    onTemplateSave(updatedTemplate);
-    setHasChanges(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Save with Cmd+S or Ctrl+S
-    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-      e.preventDefault();
-      handleSave();
-    }
-  };
-
   if (!template) {
     return (
-      <div className="editor-area">
-        <div className="empty-state">
-          <div className="empty-state-icon">✨</div>
-          <div className="empty-state-title">No Template Selected</div>
-          <div className="empty-state-description">
-            Select a template from the sidebar or create a new one to start editing
-          </div>
-        </div>
-      </div>
+      <main className="flex-1 flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-900/50">
+        <Card className="flex flex-col items-center justify-center text-center p-10 border-dashed w-full max-w-lg h-80">
+          <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+          <h2 className="text-2xl font-semibold mb-2">No Template Selected</h2>
+          <p className="text-muted-foreground">
+            Select a template from the sidebar to start editing, or create a new one.
+          </p>
+        </Card>
+      </main>
     );
   }
 
+  const handleContentChange = (newContent: string | undefined) => {
+    if (newContent !== undefined) {
+      setContent(newContent);
+      onTemplateUpdate({ ...template, content: newContent });
+    }
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
+    onTemplateUpdate({ ...template, name: e.target.value });
+  };
+  
   return (
-    <div className="editor-area">
-      <div className="editor-toolbar">
-        <input
-          type="text"
+    <main className="flex-1 flex flex-col h-screen">
+      <div className="flex items-center justify-between p-4 border-b bg-background">
+        <Input 
           value={name}
-          onChange={(e) => handleNameChange(e.target.value)}
-          placeholder="Template name..."
-          className="property-input"
-          style={{ 
-            flex: 1, 
-            marginRight: '12px',
-            fontSize: '16px',
-            fontWeight: '600'
-          }}
+          onChange={handleNameChange}
+          className="text-lg font-semibold w-1/2 border-none focus-visible:ring-0 shadow-none"
         />
-        
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {hasChanges && (
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Unsaved changes
-            </span>
-          )}
-          
-          <button
-            className={`btn ${hasChanges ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={handleSave}
-            disabled={!hasChanges}
-            title="Save template (Cmd+S)"
-          >
-            💾 Save
-          </button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Improve
+          </Button>
+          <Button>
+            <Save className="h-4 w-4 mr-2" />
+            Save
+          </Button>
         </div>
       </div>
       
-      <div className="editor-container">
-        <textarea
+      <div className="flex-1 overflow-hidden">
+        <Editor
           value={content}
-          onChange={(e) => handleContentChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Start typing your template content here...
-
-Use {{VARIABLE_NAME}} to create variables in your template.
-
-Example:
-Hello {{NAME}}, 
-
-I hope this email finds you well. I wanted to reach out about {{TOPIC}}.
-
-Best regards,
-{{SENDER_NAME}}"
-          style={{
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            outline: 'none',
-            resize: 'none',
-            padding: '20px',
-            fontSize: '14px',
-            fontFamily: '"Monaco", "Menlo", "Ubuntu Mono", monospace',
-            lineHeight: '1.6',
-            backgroundColor: 'var(--editor-bg)',
-            color: 'var(--text-primary)',
-          }}
+          onChange={handleContentChange}
         />
       </div>
-    </div>
+    </main>
   );
-}; 
+};
+
+export default EditorArea; 
+

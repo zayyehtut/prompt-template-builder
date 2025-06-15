@@ -2,32 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Navigation } from './components/Layout/Navigation';
 import { Sidebar } from './components/Layout/Sidebar';
-import { EditorArea } from './components/Editor/EditorArea';
+import EditorArea from './components/Editor/EditorArea';
 import { RightPanel } from './components/Layout/RightPanel';
 import { Template } from '../types/template';
 import { storage } from '../lib/storage';
+import { useTheme } from '@/hooks/useTheme';
 
 interface AppState {
   templates: Template[];
   selectedTemplate: Template | null;
   isLoading: boolean;
-  theme: 'light' | 'dark';
   searchQuery: string;
 }
 
 const TemplateManager: React.FC = () => {
-  const [state, setState] = useState<AppState>({
+  const { theme, toggleTheme } = useTheme();
+  const [state, setState] = useState<Omit<AppState, 'theme'>>({
     templates: [],
     selectedTemplate: null,
     isLoading: true,
-    theme: 'dark',
     searchQuery: '',
   });
 
-  // Load templates on mount
   useEffect(() => {
     loadTemplates();
-    loadTheme();
     checkForContext();
   }, []);
 
@@ -44,17 +42,6 @@ const TemplateManager: React.FC = () => {
     } catch (error) {
       console.error('Failed to load templates:', error);
       setState(prev => ({ ...prev, isLoading: false }));
-    }
-  };
-
-  const loadTheme = async () => {
-    try {
-      const { settings } = await chrome.storage.sync.get('settings');
-      const theme = settings?.theme || 'dark';
-      setState(prev => ({ ...prev, theme }));
-      document.body.setAttribute('data-theme', theme);
-    } catch (error) {
-      console.error('Failed to load theme:', error);
     }
   };
 
@@ -78,10 +65,11 @@ const TemplateManager: React.FC = () => {
   const createTemplateFromText = (text: string) => {
     const newTemplate: Template = {
       id: generateId(),
-      name: 'New Template',
+      name: 'New from Selection',
       content: text,
       variables: [],
       category: 'general',
+      description: '',
       tags: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -107,6 +95,7 @@ const TemplateManager: React.FC = () => {
       content: '',
       variables: [],
       category: 'general',
+      description: '',
       tags: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -150,21 +139,6 @@ const TemplateManager: React.FC = () => {
     }
   };
 
-  const handleThemeToggle = async () => {
-    const newTheme = state.theme === 'light' ? 'dark' : 'light';
-    setState(prev => ({ ...prev, theme: newTheme }));
-    document.body.setAttribute('data-theme', newTheme);
-    
-    try {
-      const { settings = {} } = await chrome.storage.sync.get('settings');
-      await chrome.storage.sync.set({
-        settings: { ...settings, theme: newTheme }
-      });
-    } catch (error) {
-      console.error('Failed to save theme:', error);
-    }
-  };
-
   const handleSearch = (query: string) => {
     setState(prev => ({ ...prev, searchQuery: query }));
   };
@@ -180,16 +154,16 @@ const TemplateManager: React.FC = () => {
   });
 
   return (
-    <div className="app-container">
+    <div className="flex flex-col h-screen bg-background text-foreground font-sans">
       <Navigation 
-        theme={state.theme}
-        onThemeToggle={handleThemeToggle}
+        theme={theme}
+        onThemeToggle={toggleTheme}
         searchQuery={state.searchQuery}
         onSearch={handleSearch}
         onNewTemplate={handleTemplateCreate}
       />
       
-      <div className="main-content">
+      <div className="flex flex-1 pt-16">
         <Sidebar 
           templates={filteredTemplates}
           selectedTemplate={state.selectedTemplate}
@@ -199,15 +173,17 @@ const TemplateManager: React.FC = () => {
           isLoading={state.isLoading}
         />
         
-        <EditorArea 
-          template={state.selectedTemplate}
-          onTemplateSave={handleTemplateSave}
-        />
-        
-        <RightPanel 
-          template={state.selectedTemplate}
-          onTemplateUpdate={handleTemplateSave}
-        />
+        <div className="flex-1 flex">
+          <EditorArea 
+            template={state.selectedTemplate}
+            onTemplateUpdate={handleTemplateSave}
+          />
+          
+          <RightPanel 
+            template={state.selectedTemplate}
+            onTemplateUpdate={handleTemplateSave}
+          />
+        </div>
       </div>
     </div>
   );
@@ -215,14 +191,18 @@ const TemplateManager: React.FC = () => {
 
 // Utility function to generate IDs
 const generateId = (): string => {
-  return Math.random().toString(36).substr(2, 9);
+  return `T${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`;
 };
 
 // Mount the app
 const container = document.getElementById('app');
 if (container) {
   const root = createRoot(container);
-  root.render(<TemplateManager />);
+  root.render(
+    <React.StrictMode>
+      <TemplateManager />
+    </React.StrictMode>
+  );
 } else {
   console.error('App container not found');
 } 
