@@ -6,6 +6,7 @@ import { storage } from '@/lib/storage';
 import { interpolateTemplate } from '@/lib/interpolation';
 import type { Template } from '@/types/storage';
 import { nanoid } from 'nanoid';
+import { Header } from './components/Header';
 
 type AppMode = 'list' | 'edit' | 'execute';
 
@@ -135,44 +136,49 @@ function App() {
   }
 
   return (
-    <div className="w-[400px] h-[600px] bg-white dark:bg-gray-900">
-      {mode === 'list' && (
-        <TemplateList
-          templates={templates}
-          searchQuery={searchQuery}
-          onSearch={setSearchQuery}
-          onSelect={(template) => {
-            setSelectedTemplate(template);
-            setMode('execute');
-          }}
-          onEdit={(template) => {
-            setSelectedTemplate(template);
-            setMode('edit');
-          }}
-          onNew={() => {
-            setSelectedTemplate(null);
-            setMode('edit');
-          }}
-          onDelete={handleDeleteTemplate}
-          onToggleFavorite={handleToggleFavorite}
-        />
-      )}
-      
-      {mode === 'edit' && (
-        <QuickEditor
-          template={selectedTemplate}
-          onSave={handleSaveTemplate}
-          onCancel={() => setMode('list')}
-        />
-      )}
-      
-      {mode === 'execute' && selectedTemplate && (
-        <VariableForm
-          template={selectedTemplate}
-          onSubmit={(variables) => handleExecute(selectedTemplate, variables)}
-          onBack={() => setMode('list')}
-        />
-      )}
+    <div className="w-[400px] h-[600px] bg-white dark:bg-gray-900 flex flex-col">
+      <Header 
+        onNewTemplate={() => {
+          setSelectedTemplate(null);
+          setMode('edit');
+        }}
+        onOpenManager={() => storage.openManager()}
+      />
+      <div className="flex-grow overflow-y-auto">
+        {mode === 'list' && (
+          <TemplateList
+            templates={templates}
+            searchQuery={searchQuery}
+            onSearch={setSearchQuery}
+            onSelect={(template) => {
+              setSelectedTemplate(template);
+              setMode('execute');
+            }}
+            onEdit={(template) => {
+              setSelectedTemplate(template);
+              setMode('edit');
+            }}
+            onDelete={handleDeleteTemplate}
+            onToggleFavorite={handleToggleFavorite}
+          />
+        )}
+        
+        {mode === 'edit' && (
+          <QuickEditor
+            template={selectedTemplate}
+            onSave={handleSaveTemplate}
+            onCancel={() => setMode('list')}
+          />
+        )}
+        
+        {mode === 'execute' && selectedTemplate && (
+          <VariableForm
+            template={selectedTemplate}
+            onSubmit={(variables) => handleExecute(selectedTemplate, variables)}
+            onBack={() => setMode('list')}
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -215,6 +215,34 @@ export class ExtensionStorage {
       return { local: 0, sync: 0 };
     }
   }
+
+  // Open the full template manager page
+  async openManager(context?: Record<string, any>): Promise<void> {
+    try {
+      let managerUrl = chrome.runtime.getURL('src/pages/manager.html');
+      
+      // If context is provided, store it in session storage for the manager to pick up
+      if (context) {
+        await chrome.storage.session.set({ managerContext: context });
+      }
+      
+      // Check if a manager tab is already open
+      const tabs = await chrome.tabs.query({ url: managerUrl });
+      
+      if (tabs.length > 0 && tabs[0].id) {
+        // If it's open, just focus it
+        await chrome.tabs.update(tabs[0].id, { active: true });
+        if (tabs[0].windowId) {
+            await chrome.windows.update(tabs[0].windowId, { focused: true });
+        }
+      } else {
+        // Otherwise, create a new tab
+        await chrome.tabs.create({ url: managerUrl });
+      }
+    } catch (error) {
+      console.error('Failed to open template manager:', error);
+    }
+  }
 }
 
 // Export singleton instance

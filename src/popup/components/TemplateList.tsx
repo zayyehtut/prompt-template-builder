@@ -7,7 +7,6 @@ interface TemplateListProps {
   onSearch: (query: string) => void;
   onSelect: (template: Template) => void;
   onEdit: (template: Template) => void;
-  onNew: () => void;
   onDelete?: (template: Template) => void;
   onToggleFavorite?: (template: Template) => void;
 }
@@ -18,7 +17,6 @@ export function TemplateList({
   onSearch,
   onSelect,
   onEdit,
-  onNew,
   onDelete,
   onToggleFavorite,
 }: TemplateListProps) {
@@ -77,18 +75,6 @@ export function TemplateList({
     <div className="flex flex-col h-full bg-white dark:bg-gray-900">
       {/* Header */}
       <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between mb-3">
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Templates
-          </h1>
-          <button
-            onClick={onNew}
-            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            + New
-          </button>
-        </div>
-
         {/* Search */}
         <div className="relative">
           <input
@@ -161,14 +147,6 @@ export function TemplateList({
             <p className="text-sm">
               {searchQuery ? 'No templates found' : 'No templates yet'}
             </p>
-            {!searchQuery && (
-              <button
-                onClick={onNew}
-                className="mt-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
-              >
-                Create your first template
-              </button>
-            )}
           </div>
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
