@@ -10,6 +10,7 @@ import { interpolateTemplate } from '@/lib/interpolation';
 import { useTheme } from '@/hooks/useTheme';
 import { Settings, Plus, FileText, Copy, Loader2 } from 'lucide-react';
 import { nanoid } from 'nanoid';
+import '../index.css';
 
 const Popup: React.FC = () => {
   const { theme } = useTheme();
