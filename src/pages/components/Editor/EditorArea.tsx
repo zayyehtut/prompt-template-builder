@@ -78,23 +78,18 @@ const EditorArea = ({ onSave }: EditorAreaProps) => {
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
       if (template) {
-        // Pre-process the content to convert {{...}} into the format our VariableNode understands.
         const processedContent = template.content.replace(
           /\{\{([a-zA-Z0-9_]+)\}\}/g,
           '<span data-name="$1"></span>'
         );
         
-        if (editor.getHTML() !== processedContent) {
-          editor.commands.setContent(processedContent, false);
-          // Persist the processed content and extracted variables to the global state
-          handleContentChange(processedContent);
-          extractVariablesFromContent();
-        }
+        // Set content and trigger the onUpdate event to persist the processed HTML
+        editor.commands.setContent(processedContent, true);
       } else {
-        editor.commands.clearContent(false);
+        editor.commands.clearContent(true);
       }
     }
-  }, [template, editor]);
+  }, [template?.id, editor]); // Depend only on the template ID to avoid loops
 
   if (!template) {
     return (
