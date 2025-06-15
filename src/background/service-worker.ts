@@ -17,7 +17,7 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 // Context menu click handler
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+chrome.contextMenus.onClicked.addListener(async (info, _tab) => {
   if (info.menuItemId === 'prompt-templates') {
     // Open popup
     chrome.action.openPopup();
@@ -57,7 +57,7 @@ chrome.commands.onCommand.addListener(async (command) => {
 });
 
 // Message handler for communication between components
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
   if (request.action === 'updateContextMenus') {
     updateContextMenus();
   }

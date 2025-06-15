@@ -34,7 +34,7 @@ export interface Template {
 export interface Variable {
   name: string;
   type: 'text' | 'select' | 'number' | 'boolean' | 'date';
-  defaultValue?: any;
+  defaultValue?: unknown;
   options?: string[]; // for select type
   required: boolean;
   description?: string;
@@ -43,7 +43,7 @@ export interface Variable {
 export interface VariablePreset {
   id: string;
   name: string;
-  values: Record<string, any>;
+  values: Record<string, unknown>;
   isDefault: boolean;
 }
 
@@ -61,7 +61,7 @@ export interface ExecutionRecord {
   id: string;
   templateId: string;
   templateName: string;
-  variables: Record<string, any>;
+  variables: Record<string, unknown>;
   output: string;
   executedAt: number;
   context?: {
@@ -74,7 +74,7 @@ export interface ExecutionRecord {
 export interface InterpolationOptions {
   throwOnMissing?: boolean;
   highlightMissing?: boolean;
-  transformers?: Record<string, (value: any) => any>;
+  transformers?: Record<string, (value: unknown) => unknown>;
 }
 
 // Parsed variable definition
@@ -82,6 +82,6 @@ export interface ParsedVariable {
   name: string;
   type: 'text' | 'select' | 'number' | 'boolean' | 'date';
   required: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   placeholder?: string;
 } 

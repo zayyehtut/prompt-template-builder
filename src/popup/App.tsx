@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { Template } from '@/types/storage';
 import { storage } from '@/lib/storage';
 
