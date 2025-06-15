@@ -3,16 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Plus, Palette, Save, Search } from 'lucide-react';
-import { Theme } from '@/hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
+import { useTemplateManager } from '@/contexts/TemplateManagerContext';
 
 interface NavigationProps {
-  theme: Theme;
-  onThemeToggle: () => void;
-  searchQuery: string;
-  onSearch: (query: string) => void;
-  onNewTemplate: () => void;
   onSave: () => void;
-  isSaveDisabled: boolean;
 }
 
 const AppLogo = () => (
@@ -29,15 +24,18 @@ const AppLogo = () => (
   </svg>
 );
 
-export const Navigation: React.FC<NavigationProps> = ({
-  theme,
-  onThemeToggle,
-  searchQuery,
-  onSearch,
-  onNewTemplate,
-  onSave,
-  isSaveDisabled,
-}) => {
+export const Navigation: React.FC<NavigationProps> = ({ onSave }) => {
+  const { theme, toggleTheme } = useTheme();
+  const { state, dispatch } = useTemplateManager();
+
+  const handleSearch = (query: string) => {
+    dispatch({ type: 'SET_SEARCH_QUERY', payload: query });
+  };
+  
+  const handleNewTemplate = () => {
+    dispatch({ type: 'CREATE_NEW_TEMPLATE' });
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b bg-background">
       <div className="grid grid-cols-3 items-center h-full px-4">
@@ -55,8 +53,8 @@ export const Navigation: React.FC<NavigationProps> = ({
               type="search"
               placeholder="Search templates..."
               className="w-full pl-9"
-              value={searchQuery}
-              onChange={(e) => onSearch(e.target.value)}
+              value={state.searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
         </div>
@@ -68,7 +66,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  onClick={onThemeToggle}
+                  onClick={toggleTheme}
                   className="transition-colors hover:text-primary"
                 >
                   <Palette className="h-5 w-5" />
@@ -80,12 +78,12 @@ export const Navigation: React.FC<NavigationProps> = ({
             </Tooltip>
           </TooltipProvider>
 
-          <Button variant="outline" onClick={onNewTemplate}>
+          <Button variant="outline" onClick={handleNewTemplate}>
             <Plus className="h-4 w-4 mr-2" />
             New
           </Button>
 
-          <Button onClick={onSave} disabled={isSaveDisabled}>
+          <Button onClick={onSave} disabled={!state.isDirty}>
             <Save className="h-4 w-4 mr-2" />
             Save
           </Button>

@@ -2,14 +2,11 @@ import React from 'react';
 import { Template } from '../../../types/template';
 import { Button } from '@/components/ui/button';
 import { Trash2, FileText, Star, Loader2, Folder } from 'lucide-react';
+import { useTemplateManager } from '@/contexts/TemplateManagerContext';
 
 interface SidebarProps {
   templates: Template[];
-  selectedTemplate: Template | null;
-  onTemplateSelect: (template: Template) => void;
-  onTemplateCreate: () => void;
   onTemplateDelete: (templateId: string) => void;
-  isLoading: boolean;
 }
 
 const EmptyState: React.FC<{ onCreate: () => void }> = ({ onCreate }) => (
@@ -33,12 +30,19 @@ const LoadingState: React.FC = () => (
 
 export const Sidebar: React.FC<SidebarProps> = ({
   templates,
-  selectedTemplate,
-  onTemplateSelect,
-  onTemplateCreate,
   onTemplateDelete,
-  isLoading,
 }) => {
+  const { state, dispatch } = useTemplateManager();
+  const { selectedTemplate, isLoading } = state;
+
+  const handleTemplateSelect = (template: Template) => {
+    dispatch({ type: 'SELECT_TEMPLATE', payload: { template } });
+  };
+  
+  const handleTemplateCreate = () => {
+    dispatch({ type: 'CREATE_NEW_TEMPLATE' });
+  };
+
   const templatesByCategory = templates.reduce((acc, template) => {
     const category = template.category || 'Uncategorized';
     if (!acc[category]) acc[category] = [];
@@ -58,7 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {isLoading ? (
         <LoadingState />
       ) : templates.length === 0 ? (
-        <EmptyState onCreate={onTemplateCreate} />
+        <EmptyState onCreate={handleTemplateCreate} />
       ) : (
         <div className="flex-1 overflow-y-auto -mr-2 pr-2 space-y-4">
           {categories.map(category => (
@@ -76,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         ? 'bg-primary/20 border-primary text-primary-foreground font-semibold'
                         : 'border-transparent text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
                     }`}
-                    onClick={() => onTemplateSelect(template)}
+                    onClick={() => handleTemplateSelect(template)}
                   >
                     <div className="flex-1 flex items-center gap-2 overflow-hidden">
                        {template.favorite && <Star className="h-4 w-4 text-yellow-400 flex-shrink-0" />}

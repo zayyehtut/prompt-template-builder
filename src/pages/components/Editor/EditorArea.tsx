@@ -1,26 +1,31 @@
 import { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { Template } from '@/types/template';
 import { Toolbar } from './Toolbar';
 import { VariableNode } from './VariableNode';
 import { Input } from '@/components/ui/input';
+import { useTemplateManager } from '@/contexts/TemplateManagerContext';
 
 interface EditorAreaProps {
-  template: Template | null;
-  onNameChange: (name: string) => void;
-  onContentChange: (content: string) => void;
-  onVariablesExtract: (variables: string[]) => void;
   onSave: () => void;
 }
 
-const EditorArea = ({
-  template,
-  onNameChange,
-  onContentChange,
-  onVariablesExtract,
-  onSave,
-}: EditorAreaProps) => {
+const EditorArea = ({ onSave }: EditorAreaProps) => {
+  const { state, dispatch } = useTemplateManager();
+  const { selectedTemplate: template } = state;
+
+  const handleNameChange = (name: string) => {
+    dispatch({ type: 'UPDATE_SELECTED_TEMPLATE', payload: { name } });
+  };
+
+  const handleContentChange = (content: string) => {
+    dispatch({ type: 'UPDATE_SELECTED_TEMPLATE', payload: { content } });
+  };
+
+  const handleVariablesExtract = (variables: string[]) => {
+    dispatch({ type: 'EXTRACT_VARIABLES', payload: variables });
+  };
+  
   const editor = useEditor({
     extensions: [
       StarterKit, 
@@ -34,7 +39,7 @@ const EditorArea = ({
     },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      onContentChange(html);
+      handleContentChange(html);
       extractVariablesFromContent();
     },
   });
@@ -63,7 +68,7 @@ const EditorArea = ({
       }
     });
     
-    onVariablesExtract([...new Set(variables)]);
+    handleVariablesExtract([...new Set(variables)]);
   };
 
   useEffect(() => {
@@ -83,7 +88,7 @@ const EditorArea = ({
         editor.commands.clearContent(false);
       }
     }
-  }, [template, editor]); // Depend on template to re-trigger on template switch
+  }, [template, editor]);
 
   if (!template) {
     return (
@@ -101,7 +106,7 @@ const EditorArea = ({
       <div className="flex items-center p-4 border-b border-border">
         <Input
           value={template.name}
-          onChange={e => onNameChange(e.target.value)}
+          onChange={e => handleNameChange(e.target.value)}
           placeholder="Untitled Template"
           className="text-xl font-semibold border-none focus-visible:ring-0 focus-visible:ring-offset-0 !shadow-none p-0 h-auto bg-transparent"
         />

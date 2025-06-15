@@ -11,11 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings2, StickyNote, Eye, X, Code } from 'lucide-react';
 import { interpolateTiptapContent } from '@/lib/interpolation';
-
-interface RightPanelProps {
-  template: Template | null;
-  onTemplateUpdate: (updates: Partial<Template>) => void;
-}
+import { useTemplateManager } from '@/contexts/TemplateManagerContext';
 
 const EmptyState: React.FC = () => (
   <aside className="w-96 p-4 border-l bg-background hidden xl:flex flex-col">
@@ -31,10 +27,9 @@ const EmptyState: React.FC = () => (
   </aside>
 );
 
-export const RightPanel: React.FC<RightPanelProps> = ({
-  template,
-  onTemplateUpdate,
-}) => {
+export const RightPanel: React.FC = () => {
+  const { state, dispatch } = useTemplateManager();
+  const { selectedTemplate: template } = state;
   const [previewVariables, setPreviewVariables] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -46,7 +41,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   }
 
   const handleUpdate = (updates: Partial<Template>) => {
-    onTemplateUpdate(updates);
+    dispatch({ type: 'UPDATE_SELECTED_TEMPLATE', payload: updates });
   };
 
   const handleNewTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
