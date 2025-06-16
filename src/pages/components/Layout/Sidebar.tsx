@@ -1,15 +1,14 @@
 import React from 'react';
-import { Template } from '../../../types/template';
+import { Template } from '@/types/template';
 import { Button } from '@/components/ui/button';
 import { FileText, Loader2 } from 'lucide-react';
-import { useTemplateManager } from '@/contexts/TemplateManagerContext';
-import { useTemplateActions } from '@/hooks/useTemplateActions';
+import { useTemplateStore } from '@/stores/templateStore';
 import { EmptyState } from '@/components/common/EmptyState';
 import { TemplateList } from '@/components/common/TemplateList';
 
 interface SidebarProps {
   templates: Template[];
-  onTemplateDelete: (templateId: string) => void;
+  // onTemplateDelete is now handled by the store
 }
 
 const LoadingState: React.FC = () => (
@@ -20,18 +19,17 @@ const LoadingState: React.FC = () => (
 
 export const Sidebar: React.FC<SidebarProps> = ({
   templates,
-  onTemplateDelete,
 }) => {
-  const { state } = useTemplateManager();
-  const { createNewTemplate, selectTemplate } = useTemplateActions();
-  const { selectedTemplate, isLoading } = state;
+  const { 
+    isLoading, 
+    selectedTemplateId, 
+    selectTemplate, 
+    createNewTemplate,
+    deleteTemplate
+  } = useTemplateStore();
 
   const handleTemplateSelect = (template: Template) => {
-    selectTemplate(template);
-  };
-  
-  const handleTemplateCreate = () => {
-    createNewTemplate();
+    selectTemplate(template.id);
   };
 
   return (
@@ -45,7 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           description="Create your first template to get started."
           className="bg-card-depth-1"
         >
-          <Button onClick={handleTemplateCreate} variant="default">
+          <Button onClick={createNewTemplate} variant="default">
             Create Template
           </Button>
         </EmptyState>
@@ -53,9 +51,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex-1 overflow-y-auto -mr-2 pr-2">
           <TemplateList
             templates={templates}
-            selectedTemplateId={selectedTemplate?.id}
+            selectedTemplateId={selectedTemplateId}
             onTemplateSelect={handleTemplateSelect}
-            onTemplateDelete={onTemplateDelete}
+            onTemplateDelete={deleteTemplate}
           />
         </div>
       )}

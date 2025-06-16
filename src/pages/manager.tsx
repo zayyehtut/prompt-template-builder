@@ -1,39 +1,30 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { Navigation } from './components/Layout/Navigation';
 import { Sidebar } from './components/Layout/Sidebar';
 import EditorArea from './components/Editor/EditorArea';
 import { RightPanel } from './components/Layout/RightPanel';
-import { storage } from '../lib/storage';
 import { useTheme } from '@/hooks/useTheme';
-import { TemplateManagerProvider, useTemplateManager } from '@/contexts/TemplateManagerContext';
-import { useTemplateActions } from '@/hooks/useTemplateActions';
+import { useTemplateStore, useSelectedTemplate } from '@/stores/templateStore';
 
-const TemplateManagerContent: React.FC = () => {
+export const TemplateManager: React.FC = () => {
   const { theme } = useTheme();
-  const { state } = useTemplateManager();
-  const {
-    startLoading,
-    setTemplates,
+  
+  // Get state and actions from the Zustand store
+  const { 
+    templates, 
+    searchQuery, 
+    isDirty,
+    loadTemplates, 
     createFromContext,
-    saveTemplateSuccess,
-    deleteTemplate,
-  } = useTemplateActions();
+    saveSelectedTemplate,
+  } = useTemplateStore();
+
+  const selectedTemplate = useSelectedTemplate();
 
   useEffect(() => {
     loadTemplates();
     checkForContext();
-  }, []);
-
-  const loadTemplates = async () => {
-    startLoading();
-    try {
-      const templatesData = await storage.getTemplates();
-      setTemplates(Object.values(templatesData));
-    } catch (error) {
-      console.error('Failed to load templates:', error);
-      setTemplates([]);
-    }
-  };
+  }, [loadTemplates]);
 
   const checkForContext = async () => {
     try {
@@ -47,50 +38,25 @@ const TemplateManagerContent: React.FC = () => {
     }
   };
 
-  const handleTemplateSave = useCallback(async () => {
-    if (!state.selectedTemplate || !state.isDirty) return;
-
-    try {
-      const templateToSave = {
-        ...state.selectedTemplate,
-        updatedAt: Date.now(),
-      };
-
-      await storage.saveTemplate(templateToSave);
-      saveTemplateSuccess(templateToSave);
-    } catch (error) {
-      console.error('Failed to save template:', error);
-    }
-  }, [state.selectedTemplate, state.isDirty, saveTemplateSuccess]);
-
   // Auto-save templates after a delay
   useEffect(() => {
-    if (!state.isDirty || !state.selectedTemplate) return;
+    if (!isDirty || !selectedTemplate) return;
 
     const handler = setTimeout(() => {
-      handleTemplateSave();
+      saveSelectedTemplate();
     }, 1000); // 1-second debounce
 
     return () => {
       clearTimeout(handler);
     };
-  }, [state.selectedTemplate, state.isDirty, handleTemplateSave]);
+  }, [selectedTemplate, isDirty, saveSelectedTemplate]);
 
-  const handleTemplateDelete = async (templateId: string) => {
-    try {
-      await storage.deleteTemplate(templateId);
-      deleteTemplate(templateId);
-    } catch (error) {
-      console.error('Failed to delete template:', error);
-    }
-  };
-
-  const filteredTemplates = state.templates.filter(template => {
-    if (!state.searchQuery) return true;
-    const query = state.searchQuery.toLowerCase();
+  const filteredTemplates = templates.filter(template => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
     return (
       template.name.toLowerCase().includes(query) ||
-      template.content.toLowerCase().includes(query) ||
+      (typeof template.content === 'string' && template.content.toLowerCase().includes(query)) ||
       template.tags.some(tag => tag.toLowerCase().includes(query))
     );
   });
@@ -101,31 +67,21 @@ const TemplateManagerContent: React.FC = () => {
 
   return (
     <div className={`flex flex-col h-screen bg-background text-foreground ${theme}`}>
-      <Navigation onSave={handleTemplateSave} />
+      <Navigation />
 
       <div className="flex flex-1 overflow-hidden pt-16">
         <Sidebar
           templates={filteredTemplates}
-          onTemplateDelete={handleTemplateDelete}
         />
 
         <main className="flex-1 flex flex-col p-4">
           <div className="flex-1 flex flex-col w-full h-full border rounded-lg overflow-hidden">
-            <EditorArea onSave={handleTemplateSave} />
+            <EditorArea />
           </div>
         </main>
 
         <RightPanel />
       </div>
     </div>
-  );
-};
-
-
-export const TemplateManager: React.FC = () => {
-  return (
-    <TemplateManagerProvider>
-      <TemplateManagerContent />
-    </TemplateManagerProvider>
   );
 }; 

@@ -1,11 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Template } from '@/types/template';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { storage } from '@/lib/storage';
-import { convertTiptapContentToText, interpolateTiptapContent } from '@/lib/interpolation';
 import { useTheme } from '@/hooks/useTheme';
 import { Settings, Plus, FileText, Loader2, ArrowLeft } from 'lucide-react';
-import { nanoid } from 'nanoid';
+import { useTemplateStore } from '@/stores/templateStore';
 import '../index.css';
 import { TemplateList } from '@/components/common/TemplateList';
 import { ActiveTemplateView } from '@/components/common/ActiveTemplateView';
@@ -26,66 +23,23 @@ const AppLogo = () => (
 
 const App: React.FC = () => {
   const { theme } = useTheme();
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [activeTemplate, setActiveTemplate] = useState<Template | null>(null);
-  const [variableValues, setVariableValues] = useState<Record<string, any>>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCopied, setIsCopied] = useState(false);
+  const {
+    templates,
+    selectedTemplateId,
+    variableValues,
+    isLoading,
+    isCopied,
+    loadTemplates,
+    selectTemplate,
+    setVariableValue,
+    executeTemplate,
+  } = useTemplateStore();
+
+  const activeTemplate = templates.find(t => t.id === selectedTemplateId) || null;
 
   useEffect(() => {
     loadTemplates();
-  }, []);
-
-  const loadTemplates = async () => {
-    setIsLoading(true);
-    const templatesData = await storage.getTemplates();
-    setTemplates(Object.values(templatesData));
-    setIsLoading(false);
-  };
-
-  const handleTemplateSelect = (template: Template) => {
-    setActiveTemplate(template);
-    setVariableValues(
-      template.variables.reduce((acc, v) => ({ ...acc, [v.name]: v.defaultValue ?? '' }), {})
-    );
-  };
-  
-  const handleExecute = useCallback(async () => {
-    if (!activeTemplate || isCopied) return;
-
-    try {
-      const interpolated = interpolateTiptapContent(activeTemplate.content, variableValues);
-      const outputText = convertTiptapContentToText(interpolated);
-      
-      await navigator.clipboard.writeText(outputText);
-      setIsCopied(true);
-      
-      const updatedTemplate = { 
-        ...activeTemplate, 
-        usageCount: (activeTemplate.usageCount || 0) + 1,
-        updatedAt: Date.now(),
-      };
-      await storage.saveTemplate(updatedTemplate);
-      
-      await storage.addToHistory({
-        id: nanoid(),
-        templateId: activeTemplate.id,
-        templateName: activeTemplate.name,
-        variables: variableValues,
-        output: outputText,
-        executedAt: Date.now(),
-      });
-      
-      setTimeout(() => window.close(), 700);
-
-    } catch (error) {
-      console.error('Failed to execute template:', error);
-    }
-  }, [activeTemplate, variableValues, isCopied]);
-
-  const handleVariableChange = (name: string, value: any) => {
-    setVariableValues(prev => ({ ...prev, [name]: value }));
-  };
+  }, [loadTemplates]);
 
   const openManager = (args?: any) => {
     chrome.runtime.sendMessage({ action: 'openManager', ...args });
@@ -105,7 +59,7 @@ const App: React.FC = () => {
         <div className="p-4 space-y-4 flex-1 flex flex-col">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 overflow-hidden">
-              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => setActiveTemplate(null)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => selectTemplate(null)}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <h3 className="text-sm font-medium truncate">{activeTemplate.name}</h3>
@@ -115,9 +69,9 @@ const App: React.FC = () => {
           <ActiveTemplateView
             template={activeTemplate}
             variableValues={variableValues}
-            onVariableChange={handleVariableChange}
+            onVariableChange={setVariableValue}
           >
-            <Button onClick={handleExecute} disabled={isCopied} className="w-full">
+            <Button onClick={executeTemplate} disabled={isCopied} className="w-full">
               {isCopied ? 'Copied!' : 'Copy to Clipboard'}
             </Button>
           </ActiveTemplateView>
@@ -130,8 +84,9 @@ const App: React.FC = () => {
         {templates.length > 0 ? (
           <TemplateList
             templates={templates}
-            selectedTemplateId={(activeTemplate as Template | null)?.id ?? null}
-            onTemplateSelect={handleTemplateSelect}
+            selectedTemplateId={selectedTemplateId}
+            onTemplateSelect={(template) => selectTemplate(template.id)}
+            showCategories={false}
           />
         ) : (
           <div className="text-center py-10 flex flex-col items-center justify-center h-full">

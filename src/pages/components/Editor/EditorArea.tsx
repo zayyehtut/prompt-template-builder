@@ -4,32 +4,22 @@ import StarterKit from '@tiptap/starter-kit';
 import { Toolbar } from './Toolbar';
 import { VariableNode } from './VariableNode';
 import { Input } from '@/components/ui/input';
-import { useTemplateManager } from '@/contexts/TemplateManagerContext';
-import { useTemplateActions } from '@/hooks/useTemplateActions';
+import { useTemplateStore, useSelectedTemplate } from '@/stores/templateStore';
 import { EmptyState } from '@/components/common/EmptyState';
 import { FileText } from 'lucide-react';
 
 interface EditorAreaProps {
-  onSave: () => void;
+  // onSave is now handled by the store
 }
 
-const EditorArea = ({ onSave }: EditorAreaProps) => {
-  const { state } = useTemplateManager();
-  const { updateSelectedTemplate, extractVariables } = useTemplateActions();
-  const { selectedTemplate: template } = state;
+const EditorArea = ({}: EditorAreaProps) => {
+  const { 
+    updateFromEditor,
+    updateSelectedTemplate,
+    saveSelectedTemplate
+  } = useTemplateStore();
+  const template = useSelectedTemplate();
 
-  const handleNameChange = (name: string) => {
-    updateSelectedTemplate({ name });
-  };
-
-  const handleContentChange = (content: string) => {
-    updateSelectedTemplate({ content });
-  };
-
-  const handleVariablesExtract = (variables: string[]) => {
-    extractVariables(variables);
-  };
-  
   const editor = useEditor({
     extensions: [
       StarterKit, 
@@ -43,8 +33,15 @@ const EditorArea = ({ onSave }: EditorAreaProps) => {
     },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      handleContentChange(html);
-      extractVariablesFromContent();
+      
+      const variableNames: string[] = [];
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'variable') {
+          variableNames.push(node.attrs.name);
+        }
+      });
+      
+      updateFromEditor(html, [...new Set(variableNames)]);
     },
   });
   
@@ -53,43 +50,25 @@ const EditorArea = ({ onSave }: EditorAreaProps) => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
-        onSave();
+        saveSelectedTemplate();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onSave]);
-
-  const extractVariablesFromContent = () => {
-    if (!editor) return;
-
-    const variables: string[] = [];
-    editor.state.doc.descendants((node) => {
-      if (node.type.name === 'variable') {
-        variables.push(node.attrs.name);
-      }
-    });
-    
-    handleVariablesExtract([...new Set(variables)]);
-  };
+  }, [saveSelectedTemplate]);
 
   useEffect(() => {
-    if (editor && !editor.isDestroyed) {
-      if (template) {
-        const processedContent = template.content.replace(
-          /\{\{([a-zA-Z0-9_]+)\}\}/g,
-          '<span data-name="$1"></span>'
-        );
-        
-        // Set content and trigger the onUpdate event to persist the processed HTML
-        editor.commands.setContent(processedContent, true);
-      } else {
-        editor.commands.clearContent(true);
+    if (editor && !editor.isDestroyed && template) {
+      // Avoid resetting content if it's the same, prevents cursor jump
+      if (editor.getHTML() !== template.content) {
+        editor.commands.setContent(template.content || '', true);
       }
+    } else if (editor && !editor.isDestroyed && !template) {
+      editor.commands.clearContent(true);
     }
-  }, [template?.id, editor]); // Depend only on the template ID to avoid loops
+  }, [template, editor]);
 
   if (!template) {
     return (
@@ -109,7 +88,7 @@ const EditorArea = ({ onSave }: EditorAreaProps) => {
       <div className="flex items-center p-4 border-b border-border">
         <Input
           value={template.name}
-          onChange={e => handleNameChange(e.target.value)}
+          onChange={e => updateSelectedTemplate({ name: e.target.value })}
           placeholder="Untitled Template"
           className="text-xl font-semibold border-none focus-visible:ring-0 focus-visible:ring-offset-0 !shadow-none p-0 h-auto bg-transparent"
         />

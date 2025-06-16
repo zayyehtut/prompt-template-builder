@@ -4,11 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Plus, Palette, Save, Search } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
-import { useTemplateManager } from '@/contexts/TemplateManagerContext';
-import { useTemplateActions } from '@/hooks/useTemplateActions';
+import { useTemplateStore } from '@/stores/templateStore';
 
 interface NavigationProps {
-  onSave: () => void;
+  // onSave is now handled by the store
 }
 
 const AppLogo = () => (
@@ -25,18 +24,15 @@ const AppLogo = () => (
   </svg>
 );
 
-export const Navigation: React.FC<NavigationProps> = ({ onSave }) => {
+export const Navigation: React.FC<NavigationProps> = () => {
   const { theme, toggleTheme } = useTheme();
-  const { state } = useTemplateManager();
-  const { setSearchQuery, createNewTemplate } = useTemplateActions();
-
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-  };
-  
-  const handleNewTemplate = () => {
-    createNewTemplate();
-  };
+  const { 
+    searchQuery, 
+    isDirty, 
+    setSearchQuery, 
+    createNewTemplate,
+    saveSelectedTemplate
+  } = useTemplateStore();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b bg-background">
@@ -55,8 +51,8 @@ export const Navigation: React.FC<NavigationProps> = ({ onSave }) => {
               type="search"
               placeholder="Search templates..."
               className="w-full pl-9"
-              value={state.searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
@@ -80,12 +76,12 @@ export const Navigation: React.FC<NavigationProps> = ({ onSave }) => {
             </Tooltip>
           </TooltipProvider>
 
-          <Button variant="outline" onClick={handleNewTemplate}>
+          <Button variant="outline" onClick={createNewTemplate}>
             <Plus className="h-4 w-4 mr-2" />
             New
           </Button>
 
-          <Button onClick={onSave} disabled={!state.isDirty}>
+          <Button onClick={saveSelectedTemplate} disabled={!isDirty}>
             <Save className="h-4 w-4 mr-2" />
             Save
           </Button>

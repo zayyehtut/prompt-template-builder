@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Template } from '../../../types/template';
+import React, { useEffect } from 'react';
+import { Variable } from '@/types/template';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,20 +9,22 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings2, StickyNote, Eye, X, Code } from 'lucide-react';
-import { useTemplateManager } from '@/contexts/TemplateManagerContext';
-import { useTemplateActions } from '@/hooks/useTemplateActions';
+import { useTemplateStore, useSelectedTemplate } from '@/stores/templateStore';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ActiveTemplateView } from '@/components/common/ActiveTemplateView';
 
 export const RightPanel: React.FC = () => {
-  const { state } = useTemplateManager();
-  const { updateSelectedTemplate } = useTemplateActions();
-  const { selectedTemplate: template } = state;
-  const [previewVariables, setPreviewVariables] = useState<Record<string, string>>({});
+  const { updateSelectedTemplate, variableValues, setVariableValue } = useTemplateStore();
+  const template = useSelectedTemplate();
 
   useEffect(() => {
-    setPreviewVariables({});
-  }, [template?.id]);
+    // Reset preview variables when template changes
+    if (template) {
+      template.variables.forEach(v => {
+        setVariableValue(v.name, v.defaultValue || '');
+      });
+    }
+  }, [template?.id, setVariableValue]);
 
   if (!template) {
     return (
@@ -37,23 +39,15 @@ export const RightPanel: React.FC = () => {
     );
   }
 
-  const handleUpdate = (updates: Partial<Template>) => {
-    updateSelectedTemplate(updates);
-  };
-
   const handleNewTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       const newTag = e.currentTarget.value.trim();
       if (newTag && !template.tags?.includes(newTag)) {
-        handleUpdate({ tags: [...(template.tags || []), newTag] });
+        updateSelectedTemplate({ tags: [...(template.tags || []), newTag] });
       }
       e.currentTarget.value = '';
     }
-  };
-
-  const handlePreviewVariableChange = (name: string, value: string) => {
-    setPreviewVariables(prev => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -80,7 +74,7 @@ export const RightPanel: React.FC = () => {
                   <Textarea
                     id="description"
                     value={template.description || ''}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleUpdate({ description: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateSelectedTemplate({ description: e.target.value })}
                     placeholder="Describe what this template is for..."
                     className="min-h-[80px]"
                   />
@@ -90,7 +84,7 @@ export const RightPanel: React.FC = () => {
                   <Input
                     id="category"
                     value={template.category}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdate({ category: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSelectedTemplate({ category: e.target.value })}
                     placeholder="e.g., email, social"
                   />
                 </div>
@@ -98,7 +92,7 @@ export const RightPanel: React.FC = () => {
                   <Checkbox
                     id="favorite"
                     checked={template.favorite}
-                    onCheckedChange={(checked: boolean) => handleUpdate({ favorite: !!checked })}
+                    onCheckedChange={(checked: boolean) => updateSelectedTemplate({ favorite: !!checked })}
                   />
                   <Label htmlFor="favorite">Mark as favorite</Label>
                 </div>
@@ -111,14 +105,14 @@ export const RightPanel: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {(template.tags || []).map(tag => (
+                  {(template.tags || []).map((tag: string) => (
                     <Badge key={tag} variant="secondary" className="font-mono">
                       {tag}
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-4 w-4 ml-1.5 hover:bg-destructive/20 hover:text-destructive-foreground rounded-full"
-                        onClick={() => handleUpdate({ tags: template.tags.filter(t => t !== tag) })}
+                        onClick={() => updateSelectedTemplate({ tags: template.tags.filter((t: string) => t !== tag) })}
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -157,7 +151,7 @@ export const RightPanel: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {template.variables.map(variable => (
+                    {template.variables.map((variable: Variable) => (
                       <div key={variable.name} className="p-3 bg-secondary rounded-md">
                         <p className="font-semibold text-secondary-foreground">{variable.name}</p>
                       </div>
@@ -173,8 +167,8 @@ export const RightPanel: React.FC = () => {
               <CardContent className="pt-6 h-full">
                 <ActiveTemplateView
                   template={template}
-                  variableValues={previewVariables}
-                  onVariableChange={handlePreviewVariableChange}
+                  variableValues={variableValues}
+                  onVariableChange={setVariableValue}
                 />
               </CardContent>
             </Card>
