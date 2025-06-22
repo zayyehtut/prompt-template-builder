@@ -1,0 +1,80 @@
+# Document Extraction MVP - Environment Configuration
+# Copy this file to .env and fill in your actual values
+
+# =============================================================================
+# APPLICATION SETTINGS
+# =============================================================================
+ENVIRONMENT=development
+DEBUG=true
+LOG_LEVEL=INFO
+
+# =============================================================================
+# API CONFIGURATION
+# =============================================================================
+# Allowed origins for CORS (comma-separated)
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000
+
+# =============================================================================
+# OPENROUTER API CONFIGURATION (Required)
+# =============================================================================
+# Get your API key from: https://openrouter.ai/keys
+OPENROUTER_API_KEY=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
+
+# OpenRouter API settings (optional - defaults provided)
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_MODEL_SCHEMA=moonshotai/kimi-dev-72b:free
+OPENROUTER_MODEL_EXTRACTION=moonshotai/kimi-dev-72b:free
+OPENROUTER_TIMEOUT=300
+OPENROUTER_MAX_RETRIES=3
+
+
+
+# =============================================================================
+# AZURE KEY VAULT CONFIGURATION (Optional)
+# =============================================================================
+# Azure Key Vault URL for secret management
+# Format: https://your-keyvault-name.vault.azure.net/
+AZURE_KEYVAULT_URL=
+
+# =============================================================================
+# AZURE APPLICATION INSIGHTS (Optional)
+# =============================================================================
+# Application Insights connection string for monitoring
+# Get from Azure Portal > Application Insights > Overview
+AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING=
+
+# =============================================================================
+# DOCUMENT PROCESSING SETTINGS
+# =============================================================================
+# Maximum file size in MB
+MAX_FILE_SIZE_MB=50
+
+# Processing timeout in seconds
+PROCESSING_TIMEOUT=600
+
+# Supported file types (comma-separated, include the dots)
+SUPPORTED_FILE_TYPES=.pdf,.docx,.txt,.png,.jpg,.jpeg
+
+# =============================================================================
+# SECURITY SETTINGS
+# =============================================================================
+# Enable API rate limiting
+ENABLE_RATE_LIMITING=true
+
+# Requests per minute per IP
+RATE_LIMIT_PER_MINUTE=60
+
+# =============================================================================
+# COST OPTIMIZATION SETTINGS
+# =============================================================================
+# Default extraction templates (JSON format)
+# You can customize these prompts for your specific use cases
+DEFAULT_TEMPLATES={
+  "emails": "Extract email addresses, subjects, and sender information",
+  "contacts": "Extract contact information including names, phone numbers, and addresses",
+  "invoices": "Extract invoice details including amounts, dates, and vendor information",
+  "resumes": "Extract candidate information, skills, and experience",
+  "contracts": "Extract key contract terms, dates, and parties involved",
+  "medical": "Extract medical information, diagnoses, and treatment details",
+  "financial": "Extract financial data, transactions, and account information"
+} 
