@@ -1,0 +1,6 @@
+# Root requirements file for Azure deployment
+# Install backend dependencies
+-r backend/requirements.txt
+
+# Additional production dependencies
+gunicorn==21.2.0 
